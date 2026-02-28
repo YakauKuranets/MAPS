@@ -60,7 +60,9 @@ class SIEMExporter:
         db.session.commit()
         return event
 
-    def export_events(self, event_ids: list[int] | None = None, batch_size: int = 100) -> dict[str, Any]:
+    def export_events(
+        self, event_ids: list[int] | None = None, batch_size: int = 100
+    ) -> dict[str, Any]:
         """Экспортирует события во все активные SIEM-системы."""
         if not self.clients:
             logger.warning("No active SIEM clients configured")
@@ -92,14 +94,20 @@ class SIEMExporter:
                     event.sent_at = datetime.now(timezone.utc)
                     event.sent_status = "sent"
                 db.session.commit()
-                results[f"client_{client_id}"] = {"status": "success", "count": len(events)}
+                results[f"client_{client_id}"] = {
+                    "status": "success",
+                    "count": len(events),
+                }
             else:
                 for event in events:
                     event.retry_count += 1
                     if event.retry_count >= 3:
                         event.sent_status = "failed"
                 db.session.commit()
-                results[f"client_{client_id}"] = {"status": "partial", "errors": client_results}
+                results[f"client_{client_id}"] = {
+                    "status": "partial",
+                    "errors": client_results,
+                }
 
         return results
 
@@ -112,7 +120,11 @@ class SIEMExporter:
 
         if failed:
             export_results = self.export_events([e.id for e in failed])
-            return sum(v.get("count", 0) for v in export_results.values() if isinstance(v, dict))
+            return sum(
+                v.get("count", 0)
+                for v in export_results.values()
+                if isinstance(v, dict)
+            )
         return 0
 
     def cleanup_old_events(self, days: int = 30) -> int:

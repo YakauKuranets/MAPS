@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Retention scheduler (best-effort).
 
 This module adds an optional periodic retention cleanup runner.
@@ -15,13 +13,18 @@ Important:
   (not inside the web app) to avoid duplicated runs with multiple web workers.
 """
 
+from __future__ import annotations
+
 import threading
 import time
 from typing import Optional
 
 from compat_flask import Flask
 
-from ..maintenance.retention import run_retention_cleanup, set_last_retention_status
+from ..maintenance.retention import (
+    run_retention_cleanup,
+    set_last_retention_status,
+)
 
 
 _thread: Optional[threading.Thread] = None
@@ -40,7 +43,10 @@ def _try_acquire_redis_lock(app: Flask) -> bool:
     try:
         import redis as _redis  # type: ignore
 
-        key = (app.config.get("RETENTION_SCHEDULER_LOCK_KEY") or "mapv12:retention:lock").strip()
+        key = (
+            app.config.get("RETENTION_SCHEDULER_LOCK_KEY")
+            or "mapv12:retention:lock"
+        ).strip()
         ttl = int(app.config.get("RETENTION_SCHEDULER_LOCK_TTL_SEC") or 600)
         r = _redis.Redis.from_url(redis_url, decode_responses=True)
         ok = r.set(name=key, value=str(int(time.time())), nx=True, ex=ttl)
@@ -63,7 +69,10 @@ def start_retention_scheduler(app: Flask) -> None:
 
     every_min = int(app.config.get("RETENTION_SCHEDULER_EVERY_MINUTES") or 0)
     if every_min <= 0:
-        app.logger.warning("Retention scheduler enabled, but interval is invalid: %s", every_min)
+        app.logger.warning(
+            "Retention scheduler enabled, but interval is invalid: %s",
+            every_min,
+        )
         return
 
     start_delay = int(app.config.get("RETENTION_SCHEDULER_START_DELAY_SEC") or 0)
@@ -108,5 +117,7 @@ def start_retention_scheduler(app: Flask) -> None:
     _thread = threading.Thread(target=_loop, name="retention-scheduler", daemon=True)
     _thread.start()
     app.logger.info(
-        "Retention scheduler started: every=%s min, start_delay=%s sec", every_min, start_delay
+        "Retention scheduler started: every=%s min, start_delay=%s sec",
+        every_min,
+        start_delay,
     )

@@ -123,7 +123,9 @@ class OnvifUniversalProber(BaseProber):
                     self._get_stream_uri_body(token),
                     soap_action=f"{ONVIF_MEDIA_WSDL}/GetStreamUri",
                 )
-                stream_url = self._extract_stream_uri(stream_xml) if stream_xml else None
+                stream_url = (
+                    self._extract_stream_uri(stream_xml) if stream_xml else None
+                )
                 if not stream_url:
                     continue
                 channels.append(
@@ -158,7 +160,9 @@ class OnvifUniversalProber(BaseProber):
             "SOAPAction": soap_action,
         }
         try:
-            response = await client.post(endpoint, content=body.encode("utf-8"), headers=headers)
+            response = await client.post(
+                endpoint, content=body.encode("utf-8"), headers=headers
+            )
             response.raise_for_status()
             return response.text
         except Exception:
@@ -166,10 +170,10 @@ class OnvifUniversalProber(BaseProber):
 
     def _extract_media_xaddr(self, xml_text: str) -> Optional[str]:
         root = ET.fromstring(xml_text)
-        for service in root.findall('.//{*}Service'):
-            namespace = (service.findtext('{*}Namespace') or '').lower()
-            if 'media' in namespace:
-                xaddr = service.findtext('{*}XAddr')
+        for service in root.findall(".//{*}Service"):
+            namespace = (service.findtext("{*}Namespace") or "").lower()
+            if "media" in namespace:
+                xaddr = service.findtext("{*}XAddr")
                 if xaddr:
                     return xaddr.strip()
         return None
@@ -177,16 +181,16 @@ class OnvifUniversalProber(BaseProber):
     def _extract_profiles(self, xml_text: str) -> List[Dict[str, str]]:
         root = ET.fromstring(xml_text)
         profiles: List[Dict[str, str]] = []
-        for profile in root.findall('.//{*}Profiles'):
-            token = profile.attrib.get('token', '').strip()
-            name = (profile.findtext('{*}Name') or '').strip()
+        for profile in root.findall(".//{*}Profiles"):
+            token = profile.attrib.get("token", "").strip()
+            name = (profile.findtext("{*}Name") or "").strip()
             if token:
-                profiles.append({'token': token, 'name': name})
+                profiles.append({"token": token, "name": name})
         return profiles
 
     def _extract_stream_uri(self, xml_text: str) -> Optional[str]:
         root = ET.fromstring(xml_text)
-        uri = root.findtext('.//{*}Uri')
+        uri = root.findtext(".//{*}Uri")
         if uri:
             return uri.strip()
         return None
@@ -196,15 +200,15 @@ class OnvifUniversalProber(BaseProber):
         return (
             f'<?xml version="1.0" encoding="UTF-8"?>'
             f'<s:Envelope xmlns:s="{SOAP_ENVELOPE}">'
-            f'<s:Body>{body}</s:Body>'
-            f'</s:Envelope>'
+            f"<s:Body>{body}</s:Body>"
+            f"</s:Envelope>"
         )
 
     def _get_services_body(self) -> str:
         return self._envelope(
             '<tds:GetServices xmlns:tds="http://www.onvif.org/ver10/device/wsdl">'
-            '<tds:IncludeCapability>false</tds:IncludeCapability>'
-            '</tds:GetServices>'
+            "<tds:IncludeCapability>false</tds:IncludeCapability>"
+            "</tds:GetServices>"
         )
 
     def _get_device_information_body(self) -> str:
@@ -221,12 +225,12 @@ class OnvifUniversalProber(BaseProber):
         return self._envelope(
             '<trt:GetStreamUri xmlns:trt="http://www.onvif.org/ver10/media/wsdl" '
             'xmlns:tt="http://www.onvif.org/ver10/schema">'
-            '<trt:StreamSetup>'
-            '<tt:Stream>RTP-Unicast</tt:Stream>'
-            '<tt:Transport><tt:Protocol>RTSP</tt:Protocol></tt:Transport>'
-            '</trt:StreamSetup>'
-            f'<trt:ProfileToken>{token}</trt:ProfileToken>'
-            '</trt:GetStreamUri>'
+            "<trt:StreamSetup>"
+            "<tt:Stream>RTP-Unicast</tt:Stream>"
+            "<tt:Transport><tt:Protocol>RTSP</tt:Protocol></tt:Transport>"
+            "</trt:StreamSetup>"
+            f"<trt:ProfileToken>{token}</trt:ProfileToken>"
+            "</trt:GetStreamUri>"
         )
 
 
@@ -247,7 +251,10 @@ class DahuaTvtCgiProber(BaseProber):
             return None
 
         url = f"http://{ip}/cgi-bin/configManager.cgi?action=getConfig&name=VideoInChannels"
-        auth_variants: List[httpx.Auth] = [httpx.DigestAuth(login, password), httpx.BasicAuth(login, password)]
+        auth_variants: List[httpx.Auth] = [
+            httpx.DigestAuth(login, password),
+            httpx.BasicAuth(login, password),
+        ]
 
         payload: Optional[str] = None
         status_code: Optional[int] = None
@@ -276,7 +283,9 @@ class DahuaTvtCgiProber(BaseProber):
             details={"endpoint": url, "status_code": status_code},
         )
 
-    def _parse_channels(self, text: str, *, ip: str, login: str, password: str) -> List[DiscoveredChannel]:
+    def _parse_channels(
+        self, text: str, *, ip: str, login: str, password: str
+    ) -> List[DiscoveredChannel]:
         found: Dict[int, str] = {}
         for line in text.splitlines():
             line = line.strip()
@@ -348,7 +357,9 @@ class RawRtspScannerProber(BaseProber):
                 f"rtsp://{username}:{secret}@{ip}:554/"
                 f"cam/realmonitor?channel={channel}&subtype=0"
             )
-            ok = await asyncio.to_thread(self._rtsp_options_ok, ip, 554, rtsp_url, timeout)
+            ok = await asyncio.to_thread(
+                self._rtsp_options_ok, ip, 554, rtsp_url, timeout
+            )
             if ok:
                 channels.append(
                     DiscoveredChannel(
@@ -376,7 +387,9 @@ class RawRtspScannerProber(BaseProber):
         except OSError:
             return False
 
-    def _rtsp_options_ok(self, host: str, port: int, rtsp_url: str, timeout: float) -> bool:
+    def _rtsp_options_ok(
+        self, host: str, port: int, rtsp_url: str, timeout: float
+    ) -> bool:
         request = (
             f"OPTIONS {rtsp_url} RTSP/1.0\r\n"
             f"CSeq: 1\r\n"
@@ -398,11 +411,15 @@ class AutoDiscoveryService:
     """Device auto-discovery orchestrator (chain-of-responsibility)."""
 
     def __init__(self, probers: Optional[Iterable[BaseProber]] = None) -> None:
-        self._probers: List[BaseProber] = list(probers) if probers is not None else [
-            OnvifUniversalProber(),
-            DahuaTvtCgiProber(),
-            RawRtspScannerProber(),
-        ]
+        self._probers: List[BaseProber] = (
+            list(probers)
+            if probers is not None
+            else [
+                OnvifUniversalProber(),
+                DahuaTvtCgiProber(),
+                RawRtspScannerProber(),
+            ]
+        )
 
     async def discover(
         self,
@@ -412,12 +429,14 @@ class AutoDiscoveryService:
         password: Optional[str] = None,
         timeout: float = 5.0,
     ) -> Optional[DiscoveryResult]:
-        ip = (ip or '').strip()
+        ip = (ip or "").strip()
         if not ip:
             return None
 
         for prober in self._probers:
-            result = await prober.probe(ip, login=login, password=password, timeout=timeout)
+            result = await prober.probe(
+                ip, login=login, password=password, timeout=timeout
+            )
             if result and result.channels:
                 return result
         return None
@@ -434,9 +453,16 @@ class AutoDiscoveryService:
 
         Returns normalized payload with ``status``, ``type`` and ``channels``.
         """
-        result = await self.discover(ip, login=login, password=password, timeout=timeout)
+        result = await self.discover(
+            ip, login=login, password=password, timeout=timeout
+        )
         if not result:
-            return {"status": "error", "message": "terminal_not_detected", "type": None, "channels": []}
+            return {
+                "status": "error",
+                "message": "terminal_not_detected",
+                "type": None,
+                "channels": [],
+            }
 
         return {
             "status": "success",

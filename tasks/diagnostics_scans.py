@@ -7,7 +7,13 @@ from app.extensions import db
 
 
 @shared_task(name="app.tasks.diagnostics_scans.run_mqtt_scan")
-def run_mqtt_scan(target_id: int, ip: str, port: int = 1883, username: str | None = None, password: str | None = None):
+def run_mqtt_scan(
+    target_id: int,
+    ip: str,
+    port: int = 1883,
+    username: str | None = None,
+    password: str | None = None,
+):
     """Run inventory-style MQTT availability check and persist result."""
     _ = (username, password)
     target = DiagnosticTarget.query.get(target_id)
@@ -61,11 +67,20 @@ def run_lorawan_monitor(target_id: int, duration: int = 60):
         except Exception:
             pass
 
-    target.result = {"packets": packets, "count": len(packets), "started": bool(started)}
+    target.result = {
+        "packets": packets,
+        "count": len(packets),
+        "started": bool(started),
+    }
     target.status = "completed"
     db.session.add(target)
     db.session.commit()
-    return {"ok": True, "target_id": target_id, "packets": len(packets), "started": bool(started)}
+    return {
+        "ok": True,
+        "target_id": target_id,
+        "packets": len(packets),
+        "started": bool(started),
+    }
 
 
 @shared_task(name="app.tasks.diagnostics_scans.run_5g_relay_scan")
@@ -78,12 +93,18 @@ def run_5g_relay_scan(target_id: int, remote_ue_id: str, relay_service_code: str
     from app.diagnostics.fiveg.relay_analyzer import RelaySecurityAnalyzer
 
     analyzer = RelaySecurityAnalyzer()
-    result = analyzer.analyze_relay_configuration(remote_ue_id=remote_ue_id, relay_service_code=relay_service_code)
+    result = analyzer.analyze_relay_configuration(
+        remote_ue_id=remote_ue_id, relay_service_code=relay_service_code
+    )
     target.result = result
     target.status = "completed"
     db.session.add(target)
     db.session.commit()
-    return {"ok": True, "target_id": target_id, "security_level": result.get("security_level")}
+    return {
+        "ok": True,
+        "target_id": target_id,
+        "security_level": result.get("security_level"),
+    }
 
 
 @shared_task(name="app.tasks.diagnostics_scans.run_iridium_scan")
@@ -101,11 +122,17 @@ def run_iridium_scan(target_id: int, frequency: float = 1616e6):
     target.status = "completed"
     db.session.add(target)
     db.session.commit()
-    return {"ok": True, "target_id": target_id, "protocol": result.get("protocol_version")}
+    return {
+        "ok": True,
+        "target_id": target_id,
+        "protocol": result.get("protocol_version"),
+    }
 
 
 @shared_task(name="app.tasks.diagnostics_scans.run_automotive_bus_scan")
-def run_automotive_bus_scan(target_id: int, interface: str = "can0", protocol: str = "lin"):
+def run_automotive_bus_scan(
+    target_id: int, interface: str = "can0", protocol: str = "lin"
+):
     """Run automotive LIN/FlexRay analyzer and persist result."""
     target = DiagnosticTarget.query.get(target_id)
     if not target:

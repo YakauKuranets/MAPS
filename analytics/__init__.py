@@ -7,7 +7,8 @@
 
 from compat_flask import Blueprint
 
-# Blueprint `analytics` будет зарегистрирован в app/__init__.py с префиксом /api/analytics
+# Blueprint `analytics` будет зарегистрирован в app/__init__.py
+# с префиксом /api/analytics
 bp = Blueprint('analytics', __name__, url_prefix='/api/analytics')
 
-from . import routes  # noqa: F401
+from . import routes  # noqa: E402,F401

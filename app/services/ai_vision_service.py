@@ -42,5 +42,6 @@ def analyze_incident_photo(image_path: str) -> dict:
     if provider in {"heuristic", "mock", ""}:
         return _heuristic_tags(image_path)
 
-    # External providers can be integrated here (OpenAI/Ollama), keeping stable contract.
+    # External providers can be integrated here (OpenAI/Ollama),
+    # keeping stable contract.
     return _heuristic_tags(image_path)

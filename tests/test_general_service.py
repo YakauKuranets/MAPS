@@ -1,7 +1,6 @@
 from io import BytesIO
 
 from app.services.general_service import export_addresses_root, import_addresses_root
-from app.services import addresses_service
 from app.models import Address
 from app.extensions import db
 

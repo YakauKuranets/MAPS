@@ -15,7 +15,8 @@
 Требования: requests (есть в requirements.txt)
 
 Пример:
-  python tools/tracker_stress.py --base http://127.0.0.1:8000 --username admin --password ... --devices 10 --minutes 5
+  python tools/tracker_stress.py --base http://127.0.0.1:8000
+    --username admin --password ... --devices 10 --minutes 5
 """
 
 from __future__ import annotations
@@ -61,15 +62,16 @@ class Stats:
 
 def _extract_csrf(html: str) -> Optional[str]:
     # <meta name="csrf-token" content="...">
-    m = re.search(r'name=["\']csrf-token["\']\s+content=["\']([^"\']+)["\']', html, re.I)
+    m = re.search(
+        r'name=["\']csrf-token["\']\s+content=["\']([^"\']+)["\']', html, re.I
+    )
     return m.group(1) if m else None
-
 
 
 def _parse_int_set(raw: str) -> list[str]:
     ids = []
-    for x in (raw or '').split(','):
-        s = (x or '').strip()
+    for x in (raw or "").split(","):
+        s = (x or "").strip()
         if s:
             ids.append(s)
     return ids
@@ -78,7 +80,15 @@ def _parse_int_set(raw: str) -> list[str]:
 def _send_tg(bot_token: str, chat_id: str, text: str) -> bool:
     try:
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        r = requests.post(url, data={"chat_id": str(chat_id), "text": text, "disable_web_page_preview": True}, timeout=12)
+        r = requests.post(
+            url,
+            data={
+                "chat_id": str(chat_id),
+                "text": text,
+                "disable_web_page_preview": True,
+            },
+            timeout=12,
+        )
         if not r.ok:
             return False
         j = r.json()
@@ -86,10 +96,15 @@ def _send_tg(bot_token: str, chat_id: str, text: str) -> bool:
     except Exception:
         return False
 
-def admin_login(base: str, username: str, password: str) -> tuple[requests.Session, str]:
+
+def admin_login(
+    base: str, username: str, password: str
+) -> tuple[requests.Session, str]:
     s = requests.Session()
 
-    r = s.post(f"{base}/login", json={"username": username, "password": password}, timeout=15)
+    r = s.post(
+        f"{base}/login", json={"username": username, "password": password}, timeout=15
+    )
     r.raise_for_status()
 
     # Вытаскиваем CSRF из HTML админки (в сессии он уже есть, но нужен в заголовке)
@@ -102,10 +117,17 @@ def admin_login(base: str, username: str, password: str) -> tuple[requests.Sessi
     return s, token
 
 
-def admin_pair_device(base: str, admin_sess: requests.Session, csrf: str, label: str) -> DeviceConfig:
+def admin_pair_device(
+    base: str, admin_sess: requests.Session, csrf: str, label: str
+) -> DeviceConfig:
     headers = {"X-CSRF-Token": csrf}
 
-    r = admin_sess.post(f"{base}/api/tracker/admin/pair-code", json={"label": label}, headers=headers, timeout=15)
+    r = admin_sess.post(
+        f"{base}/api/tracker/admin/pair-code",
+        json={"label": label},
+        headers=headers,
+        timeout=15,
+    )
     r.raise_for_status()
     j = r.json()
     if not j.get("ok"):
@@ -129,10 +151,23 @@ def admin_pair_device(base: str, admin_sess: requests.Session, csrf: str, label:
     seed_lat = 53.90 + random.uniform(-0.02, 0.02)
     seed_lon = 27.56 + random.uniform(-0.02, 0.02)
 
-    return DeviceConfig(device_id=device_id, device_token=device_token, seed_lat=seed_lat, seed_lon=seed_lon)
+    return DeviceConfig(
+        device_id=device_id,
+        device_token=device_token,
+        seed_lat=seed_lat,
+        seed_lon=seed_lon,
+    )
 
 
-def run_device(base: str, cfg: DeviceConfig, minutes: float, points_every: float, health_every: float, batch: int, stats: Stats) -> None:
+def run_device(
+    base: str,
+    cfg: DeviceConfig,
+    minutes: float,
+    points_every: float,
+    health_every: float,
+    batch: int,
+    stats: Stats,
+) -> None:
     sess = requests.Session()
     h = {"X-DEVICE-TOKEN": cfg.device_token}
 
@@ -141,7 +176,12 @@ def run_device(base: str, cfg: DeviceConfig, minutes: float, points_every: float
 
     session_id: Optional[int] = None
     try:
-        r = sess.post(f"{base}/api/tracker/start", json={"lat": lat, "lon": lon}, headers=h, timeout=15)
+        r = sess.post(
+            f"{base}/api/tracker/start",
+            json={"lat": lat, "lon": lon},
+            headers=h,
+            timeout=15,
+        )
         r.raise_for_status()
         j = r.json()
         if not j.get("ok"):
@@ -173,7 +213,9 @@ def run_device(base: str, cfg: DeviceConfig, minutes: float, points_every: float
                     "device_model": "stressbot",
                     "os_version": "14",
                 }
-                rr = sess.post(f"{base}/api/tracker/health", json=payload, headers=h, timeout=15)
+                rr = sess.post(
+                    f"{base}/api/tracker/health", json=payload, headers=h, timeout=15
+                )
                 rr.raise_for_status()
                 stats.inc_ok()
                 last_health = now
@@ -187,14 +229,16 @@ def run_device(base: str, cfg: DeviceConfig, minutes: float, points_every: float
 
                 base_ts = time.time()
                 for k in range(batch):
-                    pts.append({
-                        "lat": lat + random.uniform(-0.00001, 0.00001),
-                        "lon": lon + random.uniform(-0.00001, 0.00001),
-                        "ts": base_ts - (batch - k) * 0.2,
-                        "acc": max(5.0, random.uniform(5.0, 30.0)),
-                        "speed": random.uniform(0.0, 3.0),
-                        "bearing": random.uniform(0.0, 360.0),
-                    })
+                    pts.append(
+                        {
+                            "lat": lat + random.uniform(-0.00001, 0.00001),
+                            "lon": lon + random.uniform(-0.00001, 0.00001),
+                            "ts": base_ts - (batch - k) * 0.2,
+                            "acc": max(5.0, random.uniform(5.0, 30.0)),
+                            "speed": random.uniform(0.0, 3.0),
+                            "bearing": random.uniform(0.0, 360.0),
+                        }
+                    )
 
                 rr = sess.post(
                     f"{base}/api/tracker/points",
@@ -214,41 +258,90 @@ def run_device(base: str, cfg: DeviceConfig, minutes: float, points_every: float
     finally:
         if session_id is not None:
             try:
-                sess.post(f"{base}/api/tracker/stop", json={"session_id": session_id}, headers=h, timeout=10)
+                sess.post(
+                    f"{base}/api/tracker/stop",
+                    json={"session_id": session_id},
+                    headers=h,
+                    timeout=10,
+                )
             except Exception:
                 pass
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--base", default=os.environ.get("MAP_API_URL") or "http://127.0.0.1:8000", help="Base URL (например http://127.0.0.1:8000)")
-    ap.add_argument("--username", default=os.environ.get("ADMIN_USERNAME") or "", help="Admin username")
-    ap.add_argument("--password", default=os.environ.get("ADMIN_PASSWORD") or "", help="Admin password")
-    ap.add_argument("--devices", type=int, default=5, help="Сколько устройств симулировать")
+    ap.add_argument(
+        "--base",
+        default=os.environ.get("MAP_API_URL") or "http://127.0.0.1:8000",
+        help="Base URL (например http://127.0.0.1:8000)",
+    )
+    ap.add_argument(
+        "--username",
+        default=os.environ.get("ADMIN_USERNAME") or "",
+        help="Admin username",
+    )
+    ap.add_argument(
+        "--password",
+        default=os.environ.get("ADMIN_PASSWORD") or "",
+        help="Admin password",
+    )
+    ap.add_argument(
+        "--devices", type=int, default=5, help="Сколько устройств симулировать"
+    )
     ap.add_argument("--minutes", type=float, default=2.0, help="Сколько минут гонять")
-    ap.add_argument("--points-every", type=float, default=2.0, help="Интервал отправки точек, сек")
-    ap.add_argument("--health-every", type=float, default=10.0, help="Интервал heartbeat, сек")
+    ap.add_argument(
+        "--points-every", type=float, default=2.0, help="Интервал отправки точек, сек"
+    )
+    ap.add_argument(
+        "--health-every", type=float, default=10.0, help="Интервал heartbeat, сек"
+    )
     ap.add_argument("--batch", type=int, default=5, help="Сколько точек в пачке")
-    ap.add_argument("--report", default='', help='Путь для JSON-отчёта (например reports/stress.json)')
-    ap.add_argument("--metrics-every", type=float, default=0.0, help="Если >0 — опрашивать /api/tracker/admin/metrics каждые N сек и сохранить series в report")
-    ap.add_argument("--tg-chat-id", default='', help='Куда отправить итог в Telegram (chat_id). Если пусто — возьмём ADMIN_TELEGRAM_IDS из env')
-
+    ap.add_argument(
+        "--report",
+        default="",
+        help="Путь для JSON-отчёта (например reports/stress.json)",
+    )
+    ap.add_argument(
+        "--metrics-every",
+        type=float,
+        default=0.0,
+        help=(
+            "Если >0 — опрашивать /api/tracker/admin/metrics "
+            "каждые N сек и сохранить series в report"
+        ),
+    )
+    ap.add_argument(
+        "--tg-chat-id",
+        default="",
+        help=(
+            "Куда отправить итог в Telegram (chat_id). "
+            "Если пусто — возьмём ADMIN_TELEGRAM_IDS из env"
+        ),
+    )
 
     args = ap.parse_args()
 
     base = args.base.rstrip("/")
     if not args.username or not args.password:
-        print("ERROR: укажи --username/--password (или env ADMIN_USERNAME/ADMIN_PASSWORD)")
+        print(
+            "ERROR: укажи --username/--password (или env ADMIN_USERNAME/ADMIN_PASSWORD)"
+        )
         return 2
 
-    print(f"[stress] base={base} devices={args.devices} minutes={args.minutes} points_every={args.points_every}s health_every={args.health_every}s batch={args.batch}")
+    print(
+        (
+            f"[stress] base={base} devices={args.devices} minutes={args.minutes} "
+            f"points_every={args.points_every}s health_every={args.health_every}s "
+            f"batch={args.batch}"
+        )
+    )
 
     admin_sess, csrf = admin_login(base, args.username, args.password)
     print("[stress] admin login ok")
 
     devs: List[DeviceConfig] = []
     for i in range(args.devices):
-        cfg = admin_pair_device(base, admin_sess, csrf, label=f"stress-{i+1}")
+        cfg = admin_pair_device(base, admin_sess, csrf, label=f"stress-{i + 1}")
         devs.append(cfg)
         print(f"[stress] paired {cfg.device_id}")
 
@@ -257,7 +350,15 @@ def main() -> int:
     for cfg in devs:
         t = threading.Thread(
             target=run_device,
-            args=(base, cfg, args.minutes, args.points_every, args.health_every, args.batch, stats),
+            args=(
+                base,
+                cfg,
+                args.minutes,
+                args.points_every,
+                args.health_every,
+                args.batch,
+                stats,
+            ),
             daemon=True,
         )
         threads.append(t)
@@ -268,11 +369,15 @@ def main() -> int:
     stop_evt = threading.Event()
     thm = None
     if args.metrics_every and args.metrics_every > 0:
+
         def _metrics_poller():
             while not stop_evt.is_set():
                 try:
                     r = admin_sess.get(f"{base}/api/tracker/admin/metrics", timeout=10)
-                    item = {"ts": datetime.utcnow().isoformat(), "status": int(getattr(r, "status_code", 0))}
+                    item = {
+                        "ts": datetime.utcnow().isoformat(),
+                        "status": int(getattr(r, "status_code", 0)),
+                    }
                     if getattr(r, "ok", False):
                         try:
                             item["data"] = r.json()
@@ -282,8 +387,15 @@ def main() -> int:
                         item["data"] = None
                     metrics_series.append(item)
                 except Exception as e:
-                    metrics_series.append({"ts": datetime.utcnow().isoformat(), "status": 0, "error": str(e)})
+                    metrics_series.append(
+                        {
+                            "ts": datetime.utcnow().isoformat(),
+                            "status": 0,
+                            "error": str(e),
+                        }
+                    )
                 stop_evt.wait(float(args.metrics_every))
+
         thm = threading.Thread(target=_metrics_poller, daemon=True)
         thm.start()
 
@@ -308,8 +420,18 @@ def main() -> int:
         print(f"[stress] metrics status={r.status_code}")
         if r.ok:
             metrics_json = r.json()
-            m = (metrics_json.get('metrics') or {}) if isinstance(metrics_json, dict) else {}
-            print(f"[stress] metrics: online={m.get('online_devices')} active_alerts={m.get('active_alerts')} points_last_5m={m.get('points_last_5m')}")
+            m = (
+                (metrics_json.get("metrics") or {})
+                if isinstance(metrics_json, dict)
+                else {}
+            )
+            print(
+                (
+                    f"[stress] metrics: online={m.get('online_devices')} "
+                    f"active_alerts={m.get('active_alerts')} "
+                    f"points_last_5m={m.get('points_last_5m')}"
+                )
+            )
     except Exception:
         pass
 
@@ -346,16 +468,22 @@ def main() -> int:
             targets = _parse_int_set(os.environ.get("ADMIN_TELEGRAM_IDS") or "")
         if targets:
             try:
-                m = (metrics_json.get("metrics") or {}) if isinstance(metrics_json, dict) else {}
+                m = (
+                    (metrics_json.get("metrics") or {})
+                    if isinstance(metrics_json, dict)
+                    else {}
+                )
                 msg = (
-                    f"[stress] done devices={args.devices} minutes={args.minutes} ok={stats.ok} err={stats.err}\n"
-                    f"metrics: online={m.get('online_devices')} alerts={m.get('active_alerts')} points5m={m.get('points_last_5m')}"
+                    f"[stress] done devices={args.devices} minutes={args.minutes} "
+                    f"ok={stats.ok} err={stats.err}\n"
+                    f"metrics: online={m.get('online_devices')} "
+                    f"alerts={m.get('active_alerts')} "
+                    f"points5m={m.get('points_last_5m')}"
                 )
                 for chat_id in targets:
                     _send_tg(bot_token, str(chat_id), msg)
             except Exception:
                 pass
-
 
     return 0
 

@@ -10,15 +10,13 @@
 import os
 import uuid
 from io import StringIO
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from compat_flask import Response, jsonify, request, current_app, send_from_directory
 
 from ..helpers import (
     parse_coord,
     in_range,
-    filter_items,
-    get_item,
     require_admin,
     ensure_zone_access,
     get_current_admin,
@@ -265,9 +263,16 @@ def update_delete_address(item_id: str) -> Response:
             ensure_zone_access(zone_id)
         # update primitive fields if provided
         if 'name' in form or 'address' in form:
-            address.name = (form.get('name') or form.get('address') or address.name or '').strip()
+            address.name = (
+                form.get('name') or form.get('address') or address.name or ''
+            ).strip()
         if 'notes' in form or 'description' in form:
-            address.notes = (form.get('notes') or form.get('description') or address.notes or '').strip()
+            address.notes = (
+                form.get('notes')
+                or form.get('description')
+                or address.notes
+                or ''
+            ).strip()
         address.lat = new_lat
         address.lon = new_lon
         address.zone_id = zone_id
@@ -294,12 +299,18 @@ def update_delete_address(item_id: str) -> Response:
                 # удалить старую фотографию, если изменилась
                 if prev and prev != unique_name:
                     try:
-                        os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], prev))
+                        os.remove(
+                            os.path.join(current_app.config['UPLOAD_FOLDER'], prev)
+                        )
                     except Exception:
                         pass
             except Exception:
                 pass
-        elif remove_photo_flag and str(remove_photo_flag).lower() in ('1', 'true', 'yes'):
+        elif remove_photo_flag and str(remove_photo_flag).lower() in (
+            '1',
+            'true',
+            'yes',
+        ):
             # Пользователь запросил удаление фото и не прикрепил новое
             prev = address.photo
             address.photo = None
@@ -334,9 +345,13 @@ def update_delete_address(item_id: str) -> Response:
         ensure_zone_access(zone_id)
     # Обновляем поля, если они присутствуют в запросе
     if 'name' in data or 'address' in data:
-        address.name = (data.get('name') or data.get('address') or address.name or '').strip()
+        address.name = (
+            data.get('name') or data.get('address') or address.name or ''
+        ).strip()
     if 'notes' in data or 'description' in data:
-        address.notes = (data.get('notes') or data.get('description') or address.notes or '').strip()
+        address.notes = (
+            data.get('notes') or data.get('description') or address.notes or ''
+        ).strip()
     address.lat = new_lat
     address.lon = new_lon
     address.zone_id = zone_id

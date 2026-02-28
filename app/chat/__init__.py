@@ -12,4 +12,4 @@ from compat_flask import Blueprint
 
 bp = Blueprint('chat', __name__, url_prefix='/api/chat')
 
-from . import routes  # noqa: F401  # импортирует маршруты
+from . import routes  # noqa: E402,F401  # импортирует маршруты

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Retention / cleanup helpers.
 
 Best-effort implementation that can be triggered manually via admin API.
@@ -10,6 +8,8 @@ Safety defaults:
 
 We intentionally avoid new dependencies.
 """
+
+from __future__ import annotations
 
 import time
 from datetime import datetime, timedelta, timezone
@@ -109,7 +109,9 @@ def run_retention_cleanup(*, dry_run: bool = False) -> Dict[str, Any]:
     }
 
     # --- Tracks ---
-    q_points = db.session.query(TrackingPoint).filter(TrackingPoint.ts < cutoff_track_ts)
+    q_points = db.session.query(TrackingPoint).filter(
+        TrackingPoint.ts < cutoff_track_ts
+    )
     q_stops = db.session.query(TrackingStop).filter(
         (TrackingStop.end_ts.isnot(None) & (TrackingStop.end_ts < cutoff_track_ts))
         | (TrackingStop.end_ts.is_(None) & (TrackingStop.start_ts < cutoff_track_ts))
@@ -119,16 +121,24 @@ def run_retention_cleanup(*, dry_run: bool = False) -> Dict[str, Any]:
         report["deleted"]["tracking_points"] = int(q_points.count())
         report["deleted"]["tracking_stops"] = int(q_stops.count())
     else:
-        report["deleted"]["tracking_points"] = int(q_points.delete(synchronize_session=False))
-        report["deleted"]["tracking_stops"] = int(q_stops.delete(synchronize_session=False))
+        report["deleted"]["tracking_points"] = int(
+            q_points.delete(synchronize_session=False)
+        )
+        report["deleted"]["tracking_stops"] = int(
+            q_stops.delete(synchronize_session=False)
+        )
 
     # --- Chat2 ---
     if Chat2Message is not None:
-        q_chat2 = db.session.query(Chat2Message).filter(Chat2Message.created_at < cutoff_chat_dt)
+        q_chat2 = db.session.query(Chat2Message).filter(
+            Chat2Message.created_at < cutoff_chat_dt
+        )
         if dry_run:
             report["deleted"]["chat2_messages"] = int(q_chat2.count())
         else:
-            report["deleted"]["chat2_messages"] = int(q_chat2.delete(synchronize_session=False))
+            report["deleted"]["chat2_messages"] = int(
+                q_chat2.delete(synchronize_session=False)
+            )
 
     # --- Incidents ---
     q_inc = db.session.query(Incident).filter(Incident.updated_at < cutoff_inc_dt)
@@ -141,21 +151,31 @@ def run_retention_cleanup(*, dry_run: bool = False) -> Dict[str, Any]:
         report["deleted"]["incidents"] = len(incident_ids)
         if incident_ids:
             report["deleted"]["incident_events"] = int(
-                db.session.query(IncidentEvent).filter(IncidentEvent.incident_id.in_(incident_ids)).count()
+                db.session.query(IncidentEvent)
+                .filter(IncidentEvent.incident_id.in_(incident_ids))
+                .count()
             )
             report["deleted"]["incident_assignments"] = int(
-                db.session.query(IncidentAssignment).filter(IncidentAssignment.incident_id.in_(incident_ids)).count()
+                db.session.query(IncidentAssignment)
+                .filter(IncidentAssignment.incident_id.in_(incident_ids))
+                .count()
             )
     else:
         if incident_ids:
             report["deleted"]["incident_events"] = int(
-                db.session.query(IncidentEvent).filter(IncidentEvent.incident_id.in_(incident_ids)).delete(synchronize_session=False)
+                db.session.query(IncidentEvent)
+                .filter(IncidentEvent.incident_id.in_(incident_ids))
+                .delete(synchronize_session=False)
             )
             report["deleted"]["incident_assignments"] = int(
-                db.session.query(IncidentAssignment).filter(IncidentAssignment.incident_id.in_(incident_ids)).delete(synchronize_session=False)
+                db.session.query(IncidentAssignment)
+                .filter(IncidentAssignment.incident_id.in_(incident_ids))
+                .delete(synchronize_session=False)
             )
             report["deleted"]["incidents"] = int(
-                db.session.query(Incident).filter(Incident.id.in_(incident_ids)).delete(synchronize_session=False)
+                db.session.query(Incident)
+                .filter(Incident.id.in_(incident_ids))
+                .delete(synchronize_session=False)
             )
 
     if not dry_run:

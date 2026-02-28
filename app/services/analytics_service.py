@@ -68,7 +68,9 @@ def build_period_text(days: int = 7) -> Dict[str, Any]:
         .scalar()
         or 0
     )
-    total_requests = int(pending_total or 0) + int(approved_total or 0) + int(rejected_total or 0)
+    total_requests = (
+        int(pending_total or 0) + int(approved_total or 0) + int(rejected_total or 0)
+    )
 
     # Считаем события за период
     created_requests = (
@@ -79,13 +81,19 @@ def build_period_text(days: int = 7) -> Dict[str, Any]:
     )
     approved_period = (
         db.session.query(func.count(PendingHistory.id))
-        .filter(PendingHistory.status == 'approved', PendingHistory.timestamp >= since_dt)
+        .filter(
+            PendingHistory.status == 'approved',
+            PendingHistory.timestamp >= since_dt,
+        )
         .scalar()
         or 0
     )
     rejected_period = (
         db.session.query(func.count(PendingHistory.id))
-        .filter(PendingHistory.status == 'rejected', PendingHistory.timestamp >= since_dt)
+        .filter(
+            PendingHistory.status == 'rejected',
+            PendingHistory.timestamp >= since_dt,
+        )
         .scalar()
         or 0
     )
@@ -119,11 +127,12 @@ def build_summary(days: int = 7, zone_id: Optional[int] = None) -> Dict[str, Any
     Параметры
     ----------
     days : int, optional
-        Количество дней для построения таймлайна и метрики «добавлено за N дней». Значение
-        ограничивается диапазоном 1..365. По умолчанию 7.
+        Количество дней для построения таймлайна и метрики
+        «добавлено за N дней». Значение ограничивается диапазоном 1..365.
+        По умолчанию 7.
     zone_id : int, optional
-        Идентификатор зоны, по которой нужно ограничить статистику. Если None, статистика
-        строится по всем данным.
+        Идентификатор зоны, по которой нужно ограничить статистику.
+        Если None, статистика строится по всем данным.
 
     Возвращает словарь со следующей структурой::
 
@@ -145,7 +154,8 @@ def build_summary(days: int = 7, zone_id: Optional[int] = None) -> Dict[str, Any
                 },
                 ...
             ],
-            'by_zone': {...},            # распределение адресов по зонам (если не фильтруем по зоне)
+            'by_zone': {...},            # распределение адресов по зонам
+                                         # (если не фильтруем по зоне)
             'pending_by_status': {...},  # распределение заявок по статусам
         }
     """
@@ -196,7 +206,6 @@ def build_summary(days: int = 7, zone_id: Optional[int] = None) -> Dict[str, Any
                 .all()
             )
             for zid, description, cnt in zone_rows:
-                label = (description or '').strip() or 'Без описания зоны'
                 by_zone[str(zid)] = int(cnt or 0)
             # Адреса без зоны
             no_zone_count = (
@@ -222,19 +231,35 @@ def build_summary(days: int = 7, zone_id: Optional[int] = None) -> Dict[str, Any
     pending_count = (pending_query.scalar() or 0)
 
     # Исторические статусы заявок (approved / rejected)
-    appr_query = db.session.query(func.count(PendingHistory.id)).filter(PendingHistory.status == 'approved')
-    rej_query = db.session.query(func.count(PendingHistory.id)).filter(PendingHistory.status == 'rejected')
+    appr_query = db.session.query(func.count(PendingHistory.id)).filter(
+        PendingHistory.status == 'approved'
+    )
+    rej_query = db.session.query(func.count(PendingHistory.id)).filter(
+        PendingHistory.status == 'rejected'
+    )
     if zone_id is not None:
-        # Не все записи PendingHistory содержат address_id; выполняем join только если zone_id фильтр задан.
-        appr_query = appr_query.join(Address, PendingHistory.address_id == Address.id).filter(Address.zone_id == zone_id)
-        rej_query = rej_query.join(Address, PendingHistory.address_id == Address.id).filter(Address.zone_id == zone_id)
+        # Не все записи PendingHistory содержат address_id;
+        # выполняем join только если zone_id фильтр задан.
+        appr_query = appr_query.join(
+            Address,
+            PendingHistory.address_id == Address.id,
+        ).filter(Address.zone_id == zone_id)
+        rej_query = rej_query.join(
+            Address,
+            PendingHistory.address_id == Address.id,
+        ).filter(Address.zone_id == zone_id)
     approved_count = (appr_query.scalar() or 0)
     rejected_count = (rej_query.scalar() or 0)
 
     # Распределение активных заявок по статусам
-    pending_status_query = db.session.query(PendingMarker.status, func.count(PendingMarker.id))
+    pending_status_query = db.session.query(
+        PendingMarker.status,
+        func.count(PendingMarker.id),
+    )
     if zone_id is not None:
-        pending_status_query = pending_status_query.filter(PendingMarker.zone_id == zone_id)
+        pending_status_query = pending_status_query.filter(
+            PendingMarker.zone_id == zone_id
+        )
     pending_by_status_rows = pending_status_query.group_by(PendingMarker.status).all()
     pending_by_status: Dict[str, int] = {}
     for status, cnt in pending_by_status_rows:
@@ -243,7 +268,9 @@ def build_summary(days: int = 7, zone_id: Optional[int] = None) -> Dict[str, Any
 
     # --- Метрика «добавлено за N дней» ---
     since = datetime.now(timezone.utc) - timedelta(days=days_clamped)
-    added_query = db.session.query(func.count(Address.id)).filter(Address.created_at >= since)
+    added_query = db.session.query(func.count(Address.id)).filter(
+        Address.created_at >= since
+    )
     if zone_id is not None:
         added_query = added_query.filter(Address.zone_id == zone_id)
     added_last_n = (added_query.scalar() or 0)
@@ -263,16 +290,36 @@ def build_summary(days: int = 7, zone_id: Optional[int] = None) -> Dict[str, Any
         day_start = datetime.combine(day, datetime.min.time())
         day_end = day_start + timedelta(days=step)
         # Считаем адреса и заявки в выбранном интервале
-        addr_day_query = db.session.query(func.count(Address.id)).filter(Address.created_at >= day_start, Address.created_at < day_end)
-        pend_day_query = db.session.query(func.count(PendingMarker.id)).filter(PendingMarker.created_at >= day_start, PendingMarker.created_at < day_end)
-        appr_day_query = db.session.query(func.count(PendingHistory.id)).filter(PendingHistory.status == 'approved', PendingHistory.timestamp >= day_start, PendingHistory.timestamp < day_end)
-        rej_day_query = db.session.query(func.count(PendingHistory.id)).filter(PendingHistory.status == 'rejected', PendingHistory.timestamp >= day_start, PendingHistory.timestamp < day_end)
+        addr_day_query = db.session.query(func.count(Address.id)).filter(
+            Address.created_at >= day_start,
+            Address.created_at < day_end,
+        )
+        pend_day_query = db.session.query(func.count(PendingMarker.id)).filter(
+            PendingMarker.created_at >= day_start,
+            PendingMarker.created_at < day_end,
+        )
+        appr_day_query = db.session.query(func.count(PendingHistory.id)).filter(
+            PendingHistory.status == 'approved',
+            PendingHistory.timestamp >= day_start,
+            PendingHistory.timestamp < day_end,
+        )
+        rej_day_query = db.session.query(func.count(PendingHistory.id)).filter(
+            PendingHistory.status == 'rejected',
+            PendingHistory.timestamp >= day_start,
+            PendingHistory.timestamp < day_end,
+        )
         if zone_id is not None:
             addr_day_query = addr_day_query.filter(Address.zone_id == zone_id)
             pend_day_query = pend_day_query.filter(PendingMarker.zone_id == zone_id)
             # История заявок: join с Address для фильтрации по zone_id
-            appr_day_query = appr_day_query.join(Address, PendingHistory.address_id == Address.id).filter(Address.zone_id == zone_id)
-            rej_day_query = rej_day_query.join(Address, PendingHistory.address_id == Address.id).filter(Address.zone_id == zone_id)
+            appr_day_query = appr_day_query.join(
+                Address,
+                PendingHistory.address_id == Address.id,
+            ).filter(Address.zone_id == zone_id)
+            rej_day_query = rej_day_query.join(
+                Address,
+                PendingHistory.address_id == Address.id,
+            ).filter(Address.zone_id == zone_id)
         addresses_day = (addr_day_query.scalar() or 0)
         pending_created_day = (pend_day_query.scalar() or 0)
         approved_day = (appr_day_query.scalar() or 0)
@@ -324,7 +371,12 @@ def build_audit_log(limit: int = 50) -> Dict[str, Any]:
     # Созданные адреса (оборачиваем в try на случай отсутствия колонки zone_id)
     try:
         addr_rows = (
-            db.session.query(Address.id, Address.name, Address.created_at, Zone.description)
+            db.session.query(
+                Address.id,
+                Address.name,
+                Address.created_at,
+                Zone.description,
+            )
             .outerjoin(Zone, Address.zone_id == Zone.id)
             .order_by(Address.created_at.desc())
             .limit(limit)

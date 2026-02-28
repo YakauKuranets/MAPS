@@ -1,6 +1,5 @@
 import json
 
-import pytest
 
 from app.services.geocode_service import geocode
 

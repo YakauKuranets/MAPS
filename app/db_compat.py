@@ -34,7 +34,8 @@ def _is_sqlite() -> bool:
 def _sqlite_column_names(table: str) -> set[str]:
     """Возвращает набор имён колонок для таблицы SQLite.
 
-    PRAGMA table_info возвращает строки с полями: cid, name, type, notnull, dflt_value, pk.
+    PRAGMA table_info возвращает строки с полями: cid, name, type,
+    notnull, dflt_value, pk.
     """
     rows = db.session.execute(text(f"PRAGMA table_info({table})")).all()
     if not rows:
@@ -94,44 +95,66 @@ def ensure_sqlite_schema_minimal() -> bool:
             # Очень старые базы могли не иметь технических колонок для трассировки бота
             ("pending_markers", "user_id", "user_id VARCHAR(64)"),
             ("pending_markers", "message_id", "message_id VARCHAR(64)"),
-
             # Чат: в старых базах chat_messages мог не иметь признака прочитанности.
             # SQLite хранит bool как INTEGER 0/1.
             ("chat_messages", "is_read", "is_read INTEGER NOT NULL DEFAULT 0"),
-
             # Диалоги: таблица могла быть создана раньше без счётчиков/статуса.
             ("chat_dialogs", "status", "status VARCHAR(16) NOT NULL DEFAULT 'new'"),
-            ("chat_dialogs", "unread_for_admin", "unread_for_admin INTEGER NOT NULL DEFAULT 0"),
-            ("chat_dialogs", "unread_for_user", "unread_for_user INTEGER NOT NULL DEFAULT 0"),
-            ("chat_dialogs", "last_message_at", "last_message_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"),
-
-            # Telegram-профиль в диалоге (нужен, чтобы в админ-чате были не только цифры ID)
+            (
+                "chat_dialogs",
+                "unread_for_admin",
+                "unread_for_admin INTEGER NOT NULL DEFAULT 0",
+            ),
+            (
+                "chat_dialogs",
+                "unread_for_user",
+                "unread_for_user INTEGER NOT NULL DEFAULT 0",
+            ),
+            (
+                "chat_dialogs",
+                "last_message_at",
+                "last_message_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            ),
+            # Telegram-профиль в диалоге
+            # (нужен, чтобы в админ-чате были не только цифры ID)
             ("chat_dialogs", "tg_username", "tg_username VARCHAR(64)"),
             ("chat_dialogs", "tg_first_name", "tg_first_name VARCHAR(128)"),
             ("chat_dialogs", "tg_last_name", "tg_last_name VARCHAR(128)"),
             ("chat_dialogs", "display_name", "display_name VARCHAR(256)"),
-            ("chat_dialogs", "last_notified_admin_msg_id", "last_notified_admin_msg_id INTEGER NOT NULL DEFAULT 0"),
-            ("chat_dialogs", "last_seen_admin_msg_id", "last_seen_admin_msg_id INTEGER NOT NULL DEFAULT 0"),
+            (
+                "chat_dialogs",
+                "last_notified_admin_msg_id",
+                "last_notified_admin_msg_id INTEGER NOT NULL DEFAULT 0",
+            ),
+            (
+                "chat_dialogs",
+                "last_seen_admin_msg_id",
+                "last_seen_admin_msg_id INTEGER NOT NULL DEFAULT 0",
+            ),
         ]
     )
-
 
 
 def ensure_sqlite_unique_indexes() -> None:
     """Create missing UNIQUE indexes for SQLite (best-effort).
 
-    Note: if existing data violates the unique constraint, SQLite will fail to create the index.
+    Note: if existing data violates the unique constraint,
+    SQLite will fail to create the index.
     We do NOT crash the app in that case.
     """
     if not _is_sqlite():
         return
     from .extensions import db
+
     try:
-        db.session.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_tracking_points_session_ts_kind ON tracking_points(session_id, ts, kind)")
+        db.session.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS "
+            "uq_tracking_points_session_ts_kind "
+            "ON tracking_points(session_id, ts, kind)"
+        )
         db.session.commit()
     except Exception:
         try:
             db.session.rollback()
         except Exception:
             pass
-

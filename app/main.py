@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 # OpenTelemetry setup
-JAEGER_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger-collector:4317")
+JAEGER_ENDPOINT = os.getenv(
+    "OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger-collector:4317"
+)
 resource = Resource.create({"service.name": "playe-api-gateway"})
 tracer_provider = TracerProvider(resource=resource)
 otlp_exporter = OTLPSpanExporter(endpoint=JAEGER_ENDPOINT, insecure=True)
@@ -45,7 +47,11 @@ app = FastAPI(
 )
 
 # ═══ CORS — env-based, no wildcard with credentials ═══
-_cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "https://localhost:3000").split(",") if o.strip()]
+_cors_origins = [
+    o.strip()
+    for o in os.getenv("CORS_ORIGINS", "https://localhost:3000").split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
@@ -55,15 +61,21 @@ app.add_middleware(
 )
 
 app.include_router(tracker_router, prefix="/api/v1/tracker", tags=["Field Tracker"])
-app.include_router(diagnostics_router, prefix="/api/v1/diagnostics", tags=["Cyber-Physical Scanners"])
-app.include_router(threat_intel_router, prefix="/api/v1/threat_intel", tags=["OSINT & Attribution Kraken"])
+app.include_router(
+    diagnostics_router, prefix="/api/v1/diagnostics", tags=["Cyber-Physical Scanners"]
+)
+app.include_router(
+    threat_intel_router,
+    prefix="/api/v1/threat_intel",
+    tags=["OSINT & Attribution Kraken"],
+)
 app.include_router(alerting_router, prefix="/api/v1/alerting", tags=["SOAR & Alerts"])
 app.include_router(osint_router, prefix="/api/v1/osint", tags=["OSINT"])
 
 # ═══ Security Headers Middleware ═══
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
+from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
+from starlette.requests import Request  # noqa: E402
+from starlette.responses import Response  # noqa: E402
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -73,7 +85,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=(self)"
+        )
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' https://cdnjs.cloudflare.com; "
@@ -90,9 +104,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 # ═══ Security Headers Middleware ═══
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request as StarletteRequest
-from starlette.responses import Response as StarletteResponse
+from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
+from starlette.requests import Request as StarletteRequest  # noqa: E402
+from starlette.responses import Response as StarletteResponse  # noqa: E402
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -102,13 +116,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=()"
+        )
         response.headers["Content-Security-Policy"] = (
-            "default-src \'self\'; script-src \'self\'; "
-            "style-src \'self\' \'unsafe-inline\'; "
-            "img-src \'self\' data: https:; "
-            "connect-src \'self\' wss: https:; "
-            "font-src \'self\'; object-src \'none\'"
+            "default-src 'self'; script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' wss: https:; "
+            "font-src 'self'; object-src 'none'"
         )
         # Remove tech fingerprint headers
         response.headers.pop("server", None)

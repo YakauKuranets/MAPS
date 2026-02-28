@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import requests
 from compat_flask import current_app
@@ -27,7 +27,11 @@ def _load_offline_entries() -> List[Dict[str, Any]]:
     return []
 
 
-def _search_offline(entries: List[Dict[str, Any]], q: str, limit: int) -> List[Dict[str, Any]]:
+def _search_offline(
+    entries: List[Dict[str, Any]],
+    q: str,
+    limit: int,
+) -> List[Dict[str, Any]]:
     q_norm = q.lower()
     results: List[Dict[str, Any]] = []
     for item in entries:

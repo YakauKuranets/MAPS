@@ -19,11 +19,14 @@ WASM_TIMEOUT = int(os.getenv("WASM_TIMEOUT_SEC", "10"))
 WASM_MAX_MEMORY = int(os.getenv("WASM_MAX_MEMORY_MB", "64")) * 1024 * 1024
 
 try:
-    from wasmtime import Engine, Instance, Linker, Module, Store, WasiConfig
+    from wasmtime import Engine, Linker, Module, Store, WasiConfig
+
     _WASMTIME_AVAILABLE = True
 except ImportError:
     _WASMTIME_AVAILABLE = False
-    logger.info("[WASM_SANDBOX] wasmtime not installed — sandbox will use Python fallback")
+    logger.info(
+        "[WASM_SANDBOX] wasmtime not installed — sandbox will use Python fallback"
+    )
 
 
 class WasmTimeoutError(Exception):
@@ -33,6 +36,7 @@ class WasmTimeoutError(Exception):
 @contextmanager
 def _timeout_guard(seconds: int):
     """Context manager that raises WasmTimeoutError after `seconds`."""
+
     def _handler(signum, frame):
         raise WasmTimeoutError(f"Execution exceeded {seconds}s timeout")
 
@@ -63,7 +67,7 @@ class WasmSandbox:
 
     def run_parser(self, wasm_file_path: str, target_file_path: str) -> str:
         """Run parser wasm in constrained WASI sandbox and return JSON string.
-        
+
         Security guarantees:
         - No host filesystem access (only /workspace preopen)
         - No network access
@@ -71,7 +75,9 @@ class WasmSandbox:
         - Crash isolation — exceptions are caught and logged
         """
         if not _WASMTIME_AVAILABLE:
-            return json.dumps({"error": "wasm module missing", "reason": "wasmtime not installed"})
+            return json.dumps(
+                {"error": "wasm module missing", "reason": "wasmtime not installed"}
+            )
 
         if not os.path.exists(wasm_file_path):
             logger.error("[WASM_SANDBOX] Бинарник %s не найден.", wasm_file_path)
@@ -83,12 +89,17 @@ class WasmSandbox:
         # File size guard
         file_size = os.path.getsize(target_file_path)
         if file_size > 50 * 1024 * 1024:  # 50MB limit
-            return json.dumps({"error": "file_too_large", "max_bytes": 50 * 1024 * 1024})
+            return json.dumps(
+                {"error": "file_too_large", "max_bytes": 50 * 1024 * 1024}
+            )
 
         store = Store(self.engine)
 
         wasi_cfg = WasiConfig()
-        wasi_cfg.argv = ["parser.wasm", "/workspace/" + os.path.basename(target_file_path)]
+        wasi_cfg.argv = [
+            "parser.wasm",
+            "/workspace/" + os.path.basename(target_file_path),
+        ]
         wasi_cfg.preopen_dir(os.path.dirname(target_file_path), "/workspace")
         # No network, no env vars, no other dirs
         store.set_wasi(wasi_cfg)
@@ -103,27 +114,38 @@ class WasmSandbox:
                 if start:
                     start(store)
                     self._run_count += 1
-                    logger.info("[WASM_SANDBOX] Изолированный анализ успешно завершен (#%d).", self._run_count)
+                    logger.info(
+                        "[WASM_SANDBOX] Изолированный анализ успешно завершен (#%d).",
+                        self._run_count,
+                    )
                     return json.dumps({"status": "analyzed_in_sandbox", "safe": True})
                 return json.dumps({"error": "no start function"})
 
         except WasmTimeoutError:
-            logger.critical("[WASM_SANDBOX] TIMEOUT: Модуль превысил лимит %ds!", WASM_TIMEOUT)
-            return json.dumps({
-                "error": "sandbox_timeout",
-                "timeout_seconds": WASM_TIMEOUT,
-                "malicious_payload_suspected": True,
-            })
+            logger.critical(
+                "[WASM_SANDBOX] TIMEOUT: Модуль превысил лимит %ds!", WASM_TIMEOUT
+            )
+            return json.dumps(
+                {
+                    "error": "sandbox_timeout",
+                    "timeout_seconds": WASM_TIMEOUT,
+                    "malicious_payload_suspected": True,
+                }
+            )
         except MemoryError:
             logger.critical("[WASM_SANDBOX] OOM: Модуль превысил лимит памяти!")
-            return json.dumps({"error": "sandbox_oom", "malicious_payload_suspected": True})
+            return json.dumps(
+                {"error": "sandbox_oom", "malicious_payload_suspected": True}
+            )
         except Exception as e:
             logger.critical("[WASM_SANDBOX] ПЕСОЧНИЦА ЗАБЛОКИРОВАЛА СБОЙ/АТАКУ: %s", e)
-            return json.dumps({
-                "error": "sandbox_execution_failed",
-                "malicious_payload_suspected": True,
-                "detail": str(e)[:200],
-            })
+            return json.dumps(
+                {
+                    "error": "sandbox_execution_failed",
+                    "malicious_payload_suspected": True,
+                    "detail": str(e)[:200],
+                }
+            )
 
     @property
     def stats(self) -> dict:

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
@@ -27,10 +26,26 @@ class WifiAuditor:
     """
 
     DEFAULT_PASSWORDS = [
-        "12345678", "password", "admin", "12345", "1234567890",
-        "11111111", "88888888", "00000000", "1234", "123456",
-        "qwertyui", "asdfghjk", "zxcvbnm", "passw0rd", "admin123",
-        "default", "user", "guest", "root", "support",
+        "12345678",
+        "password",
+        "admin",
+        "12345",
+        "1234567890",
+        "11111111",
+        "88888888",
+        "00000000",
+        "1234",
+        "123456",
+        "qwertyui",
+        "asdfghjk",
+        "zxcvbnm",
+        "passw0rd",
+        "admin123",
+        "default",
+        "user",
+        "guest",
+        "root",
+        "support",
     ]
 
     REGION_PASSWORD_SEEDS = {
@@ -39,9 +54,21 @@ class WifiAuditor:
     }
 
     WPS_PINS = [
-        "12345670", "12345678", "00000000", "11111111", "22222222",
-        "33333333", "44444444", "55555555", "66666666", "77777777",
-        "88888888", "99999999", "98765432", "87654321", "13579246",
+        "12345670",
+        "12345678",
+        "00000000",
+        "11111111",
+        "22222222",
+        "33333333",
+        "44444444",
+        "55555555",
+        "66666666",
+        "77777777",
+        "88888888",
+        "99999999",
+        "98765432",
+        "87654321",
+        "13579246",
     ]
 
     def __init__(self, region: str = "ru") -> None:
@@ -90,7 +117,9 @@ class WifiAuditor:
                 },
             }
 
-        dict_optimizer = DictionaryOptimizer(wordlists_path=str(Path(__file__).parent / "wordlists"))
+        dict_optimizer = DictionaryOptimizer(
+            wordlists_path=str(Path(__file__).parent / "wordlists")
+        )
         freq_analyzer = FrequencyAnalyzer()
         pcfg_gen = PCFGGenerator()
 
@@ -116,7 +145,14 @@ class WifiAuditor:
             )
         )
 
-        final_list = list(dict.fromkeys(combined_dict + candidates + mutations + self.REGION_PASSWORD_SEEDS.get(self.region, [])))
+        final_list = list(
+            dict.fromkeys(
+                combined_dict
+                + candidates
+                + mutations
+                + self.REGION_PASSWORD_SEEDS.get(self.region, [])
+            )
+        )
         total = max(len(final_list), 1)
         estimated_time = self._estimate_time_seconds(total)
 
@@ -141,7 +177,9 @@ class WifiAuditor:
         for i, pwd in enumerate(final_list, start=1):
             if i % 100 == 0 or i == total:
                 progress = int((i / total) * 95)
-                self.update_progress(progress, estimated_time, result["details"], progress_callback)
+                self.update_progress(
+                    progress, estimated_time, result["details"], progress_callback
+                )
 
             if self._check_password(essid_safe, bssid, pwd):
                 return self._finish(
@@ -201,7 +239,9 @@ class WifiAuditor:
         details["estimatedTime"] = max(0, estimated_time)
         self._emit_progress(progress_callback, "PROGRESS", details)
 
-    def _emit_progress(self, callback: ProgressCallback, state: str, meta: Dict[str, Any]) -> None:
+    def _emit_progress(
+        self, callback: ProgressCallback, state: str, meta: Dict[str, Any]
+    ) -> None:
         if callback is None:
             return
         try:
@@ -210,7 +250,9 @@ class WifiAuditor:
             logger.debug("Failed to emit task progress", exc_info=True)
 
     def _load_dictionary(self) -> list[str]:
-        optimizer = DictionaryOptimizer(wordlists_path=str(Path(__file__).parent / "wordlists"))
+        optimizer = DictionaryOptimizer(
+            wordlists_path=str(Path(__file__).parent / "wordlists")
+        )
         freq = FrequencyAnalyzer()
         pcfg = PCFGGenerator()
 
@@ -233,7 +275,9 @@ class WifiAuditor:
         if not ranked:
             ranked = list(self.DEFAULT_PASSWORDS)
 
-        logger.info("Prepared %s audit candidates for region=%s", len(ranked), self.region)
+        logger.info(
+            "Prepared %s audit candidates for region=%s", len(ranked), self.region
+        )
         return ranked[:1000]
 
     def _read_wordlist(self, path: Path) -> list[str]:

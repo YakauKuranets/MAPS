@@ -9,7 +9,11 @@ from datetime import datetime, timedelta, timezone
 from compat_flask import jsonify, make_response, request
 
 from . import bp
-from ..services.analytics_service import build_summary, build_audit_log, build_period_text
+from ..services.analytics_service import (
+    build_summary,
+    build_audit_log,
+    build_period_text,
+)
 
 
 @bp.get('/summary')
@@ -188,7 +192,9 @@ def summary_xlsx():
     # Таймлайн за выбранный период
     timeline = data.get('timeline_last_n') or data.get('timeline_last_7d') or []
     ws_timeline = wb.create_sheet(title=f'Таймлайн {days_val} дней')
-    ws_timeline.append(['Дата', 'Добавлено адресов', 'Создано заявок', 'Одобрено', 'Отклонено'])
+    ws_timeline.append(
+        ['Дата', 'Добавлено адресов', 'Создано заявок', 'Одобрено', 'Отклонено']
+    )
     for row in timeline:
         date = row.get('date', '')
         addresses = row.get('addresses', 0)
@@ -203,7 +209,9 @@ def summary_xlsx():
     buf.seek(0)
 
     resp = make_response(buf.getvalue())
-    resp.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    resp.headers['Content-Type'] = (
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
     resp.headers['Content-Disposition'] = 'attachment; filename=analytics_summary.xlsx'
     resp.headers['Cache-Control'] = 'public, max-age=60'
     return resp
@@ -237,9 +245,14 @@ def risk_heatmap():
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
 
         # Получаем недавние инциденты/заявки
-        recent_pending = PendingMarker.query.filter(PendingMarker.created_at >= thirty_days_ago).all()
+        recent_pending = PendingMarker.query.filter(
+            PendingMarker.created_at >= thirty_days_ago
+        ).all()
         # Получаем базовую инфраструктуру (для фона)
-        addresses = Address.query.filter(Address.lat != None, Address.lon != None).limit(2000).all()
+        addresses = Address.query.filter(
+            Address.lat != None,  # noqa: E711
+            Address.lon != None,  # noqa: E711
+        ).limit(2000).all()
 
         heatmap_data = []
 

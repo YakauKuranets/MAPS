@@ -1,4 +1,3 @@
-from tests.conftest import login_admin
 
 def test_health_ready(client):
     h = client.get("/health")

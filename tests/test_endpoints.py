@@ -1,4 +1,3 @@
-import json
 
 
 def test_address_crud(client):
@@ -61,7 +60,7 @@ def test_admin_endpoints(client):
     for i in range(2):
         client.post('/api/addresses', json={'name': f'A{i}', 'lat':0, 'lon':0})
     # Создаём заявку через pending_marker напрямую
-    from app.models import db, PendingMarker, PendingHistory, Address
+    from app.models import db, PendingMarker, PendingHistory
     # Создадим pending запись
     with client.application.app_context():
         p = PendingMarker(name='Req', lat=0, lon=0, user_id='2')

@@ -20,19 +20,23 @@ _req_total: Dict[Tuple[str, str, str], int] = defaultdict(int)
 _req_dur_sum: Dict[Tuple[str, str], float] = defaultdict(float)
 _req_dur_cnt: Dict[Tuple[str, str], int] = defaultdict(int)
 
+
 @dataclass(frozen=True)
 class MetricsSnapshot:
     req_total: Dict[Tuple[str, str, str], int]
     dur_sum: Dict[Tuple[str, str], float]
     dur_cnt: Dict[Tuple[str, str], int]
 
+
 def _endpoint_label() -> str:
     # Flask gives something like 'chat.api_list_conversations'. It's stable across runs.
     ep = request.endpoint or "unknown"
     return ep
 
+
 def before_request() -> None:
     g._metrics_start = time.perf_counter()
+
 
 def after_request(resp: Response) -> Response:
     try:
@@ -51,8 +55,10 @@ def after_request(resp: Response) -> Response:
         pass
     return resp
 
+
 def snapshot() -> MetricsSnapshot:
     return MetricsSnapshot(dict(_req_total), dict(_req_dur_sum), dict(_req_dur_cnt))
+
 
 def render_prometheus_text() -> str:
     s = snapshot()
@@ -60,22 +66,34 @@ def render_prometheus_text() -> str:
     lines.append("# HELP http_requests_total Total HTTP requests.")
     lines.append("# TYPE http_requests_total counter")
     for (method, endpoint, status), val in sorted(s.req_total.items()):
-        lines.append(f'http_requests_total{{method="{method}",endpoint="{endpoint}",status="{status}"}} {val}')
+        lines.append(
+            f'http_requests_total{{method="{method}",'
+            f'endpoint="{endpoint}",status="{status}"}} {val}'
+        )
 
-    lines.append("# HELP http_request_duration_seconds_sum Total time spent serving requests.")
+    lines.append(
+        "# HELP http_request_duration_seconds_sum Total time spent serving requests."
+    )
     lines.append("# TYPE http_request_duration_seconds_sum counter")
     for (method, endpoint), val in sorted(s.dur_sum.items()):
-        lines.append(f'http_request_duration_seconds_sum{{method="{method}",endpoint="{endpoint}"}} {val}')
+        lines.append(
+            f'http_request_duration_seconds_sum{{method="{method}",'
+            f'endpoint="{endpoint}"}} {val}'
+        )
 
     lines.append("# HELP http_request_duration_seconds_count Number of timed requests.")
     lines.append("# TYPE http_request_duration_seconds_count counter")
     for (method, endpoint), val in sorted(s.dur_cnt.items()):
-        lines.append(f'http_request_duration_seconds_count{{method="{method}",endpoint="{endpoint}"}} {val}')
+        lines.append(
+            f'http_request_duration_seconds_count{{method="{method}",'
+            f'endpoint="{endpoint}"}} {val}'
+        )
     lines.append("")
     # Включаем chat2 метрики
     try:
         # Импорт отложен, чтобы избежать циклических зависимостей
         from ..event_chat.metrics import snapshot as chat_snapshot
+
         chat_metrics = chat_snapshot()
         for name, val in sorted(chat_metrics.items()):
             pname = name.replace("-", "_")
@@ -88,6 +106,7 @@ def render_prometheus_text() -> str:
     lines.append("")
     return "\n".join(lines)
 
+
 def metrics_response() -> Response:
     # Default deny from non-local unless explicitly allowed.
     allow_public = bool(current_app.config.get("METRICS_ALLOW_PUBLIC"))
@@ -98,9 +117,17 @@ def metrics_response() -> Response:
             if not provided:
                 provided = (request.args.get("api_key") or "").strip()
             if provided == expected:
-                return Response(render_prometheus_text(), status=200, mimetype="text/plain; version=0.0.4")
+                return Response(
+                    render_prometheus_text(),
+                    status=200,
+                    mimetype="text/plain; version=0.0.4",
+                )
 
         ra = request.remote_addr or ""
         if ra not in ("127.0.0.1", "::1"):
-            return Response("forbidden\n", status=403, mimetype="text/plain; version=0.0.4")
-    return Response(render_prometheus_text(), status=200, mimetype="text/plain; version=0.0.4")
+            return Response(
+                "forbidden\n", status=403, mimetype="text/plain; version=0.0.4"
+            )
+    return Response(
+        render_prometheus_text(), status=200, mimetype="text/plain; version=0.0.4"
+    )

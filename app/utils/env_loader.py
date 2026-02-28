@@ -27,7 +27,9 @@ def load_dotenv_like(*candidates: str) -> str | None:
     cwd = Path.cwd()
     here = Path(__file__).resolve()
     proj_root = here.parents[2]
-    paths.extend([cwd / ".env", proj_root / ".env", cwd / ".env.local", proj_root / ".env.local"])
+    paths.extend(
+        [cwd / ".env", proj_root / ".env", cwd / ".env.local", proj_root / ".env.local"]
+    )
 
     for p in paths:
         try:
@@ -56,7 +58,9 @@ def load_dotenv_like(*candidates: str) -> str | None:
 class AppSettings(BaseSettings):
     """Strict app settings hydrated from Vault (with env fallback)."""
 
-    database_uri: str = "cockroachdb+asyncpg://root@playe-db-cockroachdb-public:26257/defaultdb"
+    database_uri: str = (
+        "cockroachdb+asyncpg://root@playe-db-cockroachdb-public:26257/defaultdb"
+    )
     redis_url: str = "redis://redis-service:6379/0"
     cloudflare_token: str = ""
     jwt_secret: str = "super_secret_fallback"
@@ -95,19 +99,29 @@ def fetch_secrets_from_vault() -> AppSettings:
         response = client.secrets.kv.v2.read_secret_version(path="playe_cti")
         secrets = (response.get("data") or {}).get("data") or {}
 
-        logger.warning("[VAULT] Секреты успешно загружены в оперативную память. Жесткий диск чист.")
+        logger.warning(
+            "[VAULT] Секреты успешно загружены в оперативную память. Жесткий диск чист."
+        )
 
         cfg = AppSettings(
-            database_uri=secrets.get("DATABASE_URI", os.getenv("DATABASE_URI", AppSettings().database_uri)),
-            redis_url=secrets.get("REDIS_URL", os.getenv("REDIS_URL", AppSettings().redis_url)),
+            database_uri=secrets.get(
+                "DATABASE_URI", os.getenv("DATABASE_URI", AppSettings().database_uri)
+            ),
+            redis_url=secrets.get(
+                "REDIS_URL", os.getenv("REDIS_URL", AppSettings().redis_url)
+            ),
             cloudflare_token=secrets.get("CLOUDFLARE_API_TOKEN", ""),
-            jwt_secret=secrets.get("JWT_SECRET_KEY", os.getenv("JWT_SECRET_KEY", "fallback")),
+            jwt_secret=secrets.get(
+                "JWT_SECRET_KEY", os.getenv("JWT_SECRET_KEY", "fallback")
+            ),
         )
         _apply_settings_to_environ(cfg)
         return cfg
 
     except Exception as e:
-        logger.error(f"[VAULT] Не удалось достучаться до сейфа: {e}. Используем локальные ENV.")
+        logger.error(
+            f"[VAULT] Не удалось достучаться до сейфа: {e}. Используем локальные ENV."
+        )
         cfg = AppSettings()
         _apply_settings_to_environ(cfg)
         return cfg

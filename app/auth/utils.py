@@ -13,7 +13,10 @@ from .models import ApiKey
 
 
 def _serializer() -> URLSafeTimedSerializer:
-    secret = current_app.config.get("JWT_SECRET_KEY") or current_app.config.get("SECRET_KEY")
+    secret = (
+        current_app.config.get("JWT_SECRET_KEY")
+        or current_app.config.get("SECRET_KEY")
+    )
     return URLSafeTimedSerializer(secret_key=secret, salt="auth-jwt")
 
 
@@ -28,7 +31,11 @@ def create_access_token(identity: str, role: str) -> str:
 
 
 def verify_access_token(token: str) -> Optional[Dict[str, Any]]:
-    max_age = int(current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES", timedelta(hours=1)).total_seconds())
+    max_age = int(
+        current_app.config.get(
+            "JWT_ACCESS_TOKEN_EXPIRES", timedelta(hours=1)
+        ).total_seconds()
+    )
     try:
         data = _serializer().loads(token, max_age=max_age)
         if data.get("typ") != "access":

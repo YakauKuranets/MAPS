@@ -31,12 +31,16 @@ def check_alerts() -> dict:
 
 def _process_cvss_rule(rule: AlertRule) -> int:
     threshold = float(rule.threshold or 7.0)
-    cves = CVE.query.filter(CVE.cvss_score.isnot(None), CVE.cvss_score > threshold).all()
+    cves = CVE.query.filter(
+        CVE.cvss_score.isnot(None), CVE.cvss_score > threshold
+    ).all()
     sent = 0
 
     for cve in cves:
         fingerprint = f"CVE:{cve.id}"
-        exists = AlertHistory.query.filter_by(rule_id=rule.id, message=fingerprint).first()
+        exists = AlertHistory.query.filter_by(
+            rule_id=rule.id, message=fingerprint
+        ).first()
         if exists:
             continue
 
@@ -45,7 +49,9 @@ def _process_cvss_rule(rule: AlertRule) -> int:
             f"{(cve.description or '')[:200]}"
         )
         _dispatch_alert(rule, text, severity="high")
-        db.session.add(AlertHistory(rule_id=rule.id, message=fingerprint, severity="high"))
+        db.session.add(
+            AlertHistory(rule_id=rule.id, message=fingerprint, severity="high")
+        )
         sent += 1
 
     return sent
@@ -62,13 +68,19 @@ def _process_password_rule(rule: AlertRule) -> int:
 
     for target in targets:
         fingerprint = f"PASSWORD:{target.id}"
-        exists = AlertHistory.query.filter_by(rule_id=rule.id, message=fingerprint).first()
+        exists = AlertHistory.query.filter_by(
+            rule_id=rule.id, message=fingerprint
+        ).first()
         if exists:
             continue
 
-        text = f"Найден риск раскрытия пароля на цели {target.identifier} (id={target.id})"
+        text = (
+            f"Найден риск раскрытия пароля на цели {target.identifier} (id={target.id})"
+        )
         _dispatch_alert(rule, text, severity="critical")
-        db.session.add(AlertHistory(rule_id=rule.id, message=fingerprint, severity="critical"))
+        db.session.add(
+            AlertHistory(rule_id=rule.id, message=fingerprint, severity="critical")
+        )
         sent += 1
 
     return sent
@@ -82,13 +94,20 @@ def _process_compromised_rule(rule: AlertRule) -> int:
 
     for target in targets:
         fingerprint = f"COMPROMISED:{target.id}"
-        exists = AlertHistory.query.filter_by(rule_id=rule.id, message=fingerprint).first()
+        exists = AlertHistory.query.filter_by(
+            rule_id=rule.id, message=fingerprint
+        ).first()
         if exists:
             continue
 
-        text = f"Возможная компрометация устройства {target.identifier} (status={target.status})"
+        text = (
+            f"Возможная компрометация устройства {target.identifier} "
+            f"(status={target.status})"
+        )
         _dispatch_alert(rule, text, severity="critical")
-        db.session.add(AlertHistory(rule_id=rule.id, message=fingerprint, severity="critical"))
+        db.session.add(
+            AlertHistory(rule_id=rule.id, message=fingerprint, severity="critical")
+        )
         sent += 1
 
     return sent

@@ -22,7 +22,9 @@ def test_terminal_connection():
     terminal_type = str(payload.get('type') or '').strip().upper()
 
     if not ip or not login or not password or not terminal_type:
-        return jsonify({'status': 'error', 'message': 'ip, login, password, type are required'}), 400
+        return jsonify(
+            {'status': 'error', 'message': 'ip, login, password, type are required'}
+        ), 400
 
     try:
         if terminal_type == 'HIK':
@@ -34,7 +36,12 @@ def test_terminal_connection():
             )
             if 200 <= resp.status_code < 300:
                 return jsonify({'status': 'success'}), 200
-            return jsonify({'status': 'error', 'message': f'HIK auth failed: HTTP {resp.status_code}'}), 200
+            return jsonify(
+                {
+                    'status': 'error',
+                    'message': f'HIK auth failed: HTTP {resp.status_code}',
+                }
+            ), 200
 
         if terminal_type == 'FTP':
             ftp = ftplib.FTP()

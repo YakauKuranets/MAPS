@@ -24,12 +24,18 @@ def _is_serialization_failure(exc: Exception) -> bool:
     if sqlstate == "40001":
         return True
     txt = str(exc)
-    return "40001" in txt or "SerializationFailure" in txt or "serialization failure" in txt.lower()
+    return (
+        "40001" in txt
+        or "SerializationFailure" in txt
+        or "serialization failure" in txt.lower()
+    )
 
 
-def retry_on_serialization_failure(max_retries: int = 3, delay: float = 0.5, jitter: float = 0.2):
+def retry_on_serialization_failure(
+    max_retries: int = 3, delay: float = 0.5, jitter: float = 0.2
+):
     """Retry wrapper for CockroachDB serialization conflicts (SQLSTATE 40001).
-    
+
     Args:
         max_retries: Maximum number of retry attempts
         delay: Base delay between retries (multiplied by attempt number)
@@ -48,7 +54,10 @@ def retry_on_serialization_failure(max_retries: int = 3, delay: float = 0.5, jit
                         if _is_serialization_failure(e):
                             wait = delay * (attempt + 1) + random.uniform(0, jitter)
                             logger.warning(
-                                "[CockroachDB] Конфликт транзакций (Попытка %s/%s). Повтор через %.2fs...",
+                                (
+                                    "[CockroachDB] Конфликт транзакций "
+                                    "(Попытка %s/%s). Повтор через %.2fs..."
+                                ),
                                 attempt + 1,
                                 max_retries,
                                 wait,
@@ -56,8 +65,12 @@ def retry_on_serialization_failure(max_retries: int = 3, delay: float = 0.5, jit
                             await asyncio.sleep(wait)
                             continue
                         raise
-                logger.error("[CockroachDB] Транзакция провалена после %d попыток.", max_retries)
-                raise CockroachRetryExhausted(f"Max retries ({max_retries}) reached for CockroachDB transaction")
+                logger.error(
+                    "[CockroachDB] Транзакция провалена после %d попыток.", max_retries
+                )
+                raise CockroachRetryExhausted(
+                    f"Max retries ({max_retries}) reached for CockroachDB transaction"
+                )
 
             return async_wrapper
 
@@ -70,7 +83,10 @@ def retry_on_serialization_failure(max_retries: int = 3, delay: float = 0.5, jit
                     if _is_serialization_failure(e):
                         wait = delay * (attempt + 1) + random.uniform(0, jitter)
                         logger.warning(
-                            "[CockroachDB] Конфликт транзакций (Попытка %s/%s). Повтор через %.2fs...",
+                            (
+                                "[CockroachDB] Конфликт транзакций "
+                                "(Попытка %s/%s). Повтор через %.2fs..."
+                            ),
                             attempt + 1,
                             max_retries,
                             wait,
@@ -78,8 +94,12 @@ def retry_on_serialization_failure(max_retries: int = 3, delay: float = 0.5, jit
                         time.sleep(wait)
                         continue
                     raise
-            logger.error("[CockroachDB] Транзакция провалена после %d попыток.", max_retries)
-            raise CockroachRetryExhausted(f"Max retries ({max_retries}) reached for CockroachDB transaction")
+            logger.error(
+                "[CockroachDB] Транзакция провалена после %d попыток.", max_retries
+            )
+            raise CockroachRetryExhausted(
+                f"Max retries ({max_retries}) reached for CockroachDB transaction"
+            )
 
         return sync_wrapper
 
@@ -88,10 +108,10 @@ def retry_on_serialization_failure(max_retries: int = 3, delay: float = 0.5, jit
 
 async def cockroach_health_check(engine) -> dict:
     """Check CockroachDB cluster health via the engine.
-    
+
     Args:
         engine: SQLAlchemy async engine
-    
+
     Returns:
         dict with status, version, node count
     """

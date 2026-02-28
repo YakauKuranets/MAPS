@@ -11,7 +11,11 @@ import math
 from typing import Any, Dict, List, Optional
 
 from compat_flask import abort, session
-from .services.permissions_service import get_admin_by_username, has_role, has_zone_access
+from .services.permissions_service import (
+    get_admin_by_username,
+    has_role,
+    has_zone_access,
+)
 
 
 def parse_coord(value: Any) -> Optional[float]:
@@ -40,7 +44,9 @@ def in_range(lat: Optional[float], lon: Optional[float]) -> bool:
     return True
 
 
-def filter_items(items: List[Dict[str, Any]], query: str = "", category: str = "", status: str = "") -> List[Dict[str, Any]]:
+def filter_items(
+    items: List[Dict[str, Any]], query: str = "", category: str = "", status: str = ""
+) -> List[Dict[str, Any]]:
     """
     Отфильтровать список адресов по запросу, категории и статусу.
 
@@ -50,7 +56,7 @@ def filter_items(items: List[Dict[str, Any]], query: str = "", category: str = "
     q_lower = query.lower()
     for item in items:
         if query:
-            val = (item.get("name") or item.get("address") or "")
+            val = item.get("name") or item.get("address") or ""
             if q_lower not in val.lower():
                 continue
         if category and category != item.get("category", ""):
@@ -80,11 +86,23 @@ def haversine_m(lat1, lon1, lat2, lon2) -> float:
     R = 6371000.0
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
-    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(dlon / 2) ** 2
+    )
     return 2 * R * math.atan2(math.sqrt(1 - a), math.sqrt(a))
 
 
-def find_duplicate(name: str, lat: Optional[float], lon: Optional[float], items: List[Dict[str, Any]], pending: List[Dict[str, Any]], threshold_m: int = 100):
+def find_duplicate(
+    name: str,
+    lat: Optional[float],
+    lon: Optional[float],
+    items: List[Dict[str, Any]],
+    pending: List[Dict[str, Any]],
+    threshold_m: int = 100,
+):
     """
     Ищет похожую запись среди существующих адресов и ожидающих.
     Возвращает dict {'type': 'address'|'pending', 'id': int} либо None.
@@ -144,6 +162,7 @@ def require_admin(min_role: str = "editor") -> None:
     # но только если username совпал и сессия помечена как is_admin.
     try:
         from compat_flask import current_app
+
         stored_user = current_app.config.get("ADMIN_USERNAME")
     except Exception:
         stored_user = None
@@ -176,4 +195,3 @@ def ensure_zone_access(zone_id):
     admin = get_current_admin()
     if not has_zone_access(admin, zone_id):
         abort(403)
-

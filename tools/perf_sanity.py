@@ -70,7 +70,11 @@ def extract_csrf_cookie(s: requests.Session) -> str | None:
 
 def login_admin(base_url: str) -> tuple[requests.Session, dict]:
     s = requests.Session()
-    r = s.post(base_url + "/login", json={"username": "admin", "password": "admin"}, timeout=2.0)
+    r = s.post(
+        base_url + "/login",
+        json={"username": "admin", "password": "admin"},
+        timeout=2.0,
+    )
     if r.status_code not in (200, 204):
         raise RuntimeError(f"Login failed: {r.status_code}: {r.text}")
     csrf = extract_csrf_cookie(s)
@@ -81,7 +85,12 @@ def login_admin(base_url: str) -> tuple[requests.Session, dict]:
 
 
 def seed_chat(s: requests.Session, base_url: str, headers: dict, user_id: str) -> None:
-    s.post(base_url + f"/api/chat/{user_id}", json={"text": "perf-seed"}, headers=headers, timeout=2.0)
+    s.post(
+        base_url + f"/api/chat/{user_id}",
+        json={"text": "perf-seed"},
+        headers=headers,
+        timeout=2.0,
+    )
 
 
 def run_load(fn: Callable[[], int], runs: int, concurrency: int) -> Result:
@@ -107,7 +116,10 @@ def report(name: str, res: Result) -> None:
     p50 = statistics.median(res.durations)
     p95 = sorted(res.durations)[int(len(res.durations) * 0.95) - 1]
     mx = max(res.durations)
-    print(f"{name}: ok={res.ok} fail={res.fail} p50={p50:.3f}s p95={p95:.3f}s max={mx:.3f}s")
+    print(
+        f"{name}: ok={res.ok} fail={res.fail} "
+        f"p50={p50:.3f}s p95={p95:.3f}s max={mx:.3f}s"
+    )
 
 
 def main() -> None:
@@ -115,7 +127,9 @@ def main() -> None:
     ap.add_argument("--base", default="", help="Base URL, e.g. http://127.0.0.1:8000")
     ap.add_argument("--runs", type=int, default=200)
     ap.add_argument("--concurrency", type=int, default=20)
-    ap.add_argument("--spawn", action="store_true", help="Spawn local ASGI server via uvicorn")
+    ap.add_argument(
+        "--spawn", action="store_true", help="Spawn local ASGI server via uvicorn"
+    )
     args = ap.parse_args()
 
     p = None
@@ -128,7 +142,18 @@ def main() -> None:
         env["TESTING"] = "1"
         env["PORT"] = str(port)
         p = subprocess.Popen(
-            ["python", "-m", "uvicorn", "asgi_realtime:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
+            [
+                "python",
+                "-m",
+                "uvicorn",
+                "asgi_realtime:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                str(port),
+                "--log-level",
+                "warning",
+            ],
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -154,22 +179,40 @@ def main() -> None:
                 if r.status_code != 200:
                     raise RuntimeError(r.status_code)
                 return int((time.perf_counter() - t0) * 1000)
+
             return _call
 
         def mk_post(path: str):
             def _call() -> int:
                 t0 = time.perf_counter()
-                r = requests.post(base + path, cookies=cookies, headers=headers, timeout=2.0)
+                r = requests.post(
+                    base + path, cookies=cookies, headers=headers, timeout=2.0
+                )
                 if r.status_code != 200:
                     raise RuntimeError(r.status_code)
                 return int((time.perf_counter() - t0) * 1000)
+
             return _call
 
         res_health = run_load(mk_get("/health"), args.runs, args.concurrency)
-        res_convs = run_load(mk_get("/api/chat/conversations?limit=50&offset=0"), args.runs, args.concurrency)
-        res_hist = run_load(mk_get(f"/api/chat/{user_id}?limit=50&tail=1"), args.runs, args.concurrency)
-        res_devs = run_load(mk_get("/api/tracker/admin/devices?limit=200&offset=0"), args.runs, args.concurrency)
-        res_token = run_load(mk_post("/api/realtime/token"), max(50, args.runs // 4), max(5, args.concurrency // 4))
+        res_convs = run_load(
+            mk_get("/api/chat/conversations?limit=50&offset=0"),
+            args.runs,
+            args.concurrency,
+        )
+        res_hist = run_load(
+            mk_get(f"/api/chat/{user_id}?limit=50&tail=1"), args.runs, args.concurrency
+        )
+        res_devs = run_load(
+            mk_get("/api/tracker/admin/devices?limit=200&offset=0"),
+            args.runs,
+            args.concurrency,
+        )
+        res_token = run_load(
+            mk_post("/api/realtime/token"),
+            max(50, args.runs // 4),
+            max(5, args.concurrency // 4),
+        )
 
         print("\n=== Perf sanity ===")
         report("GET /health", res_health)

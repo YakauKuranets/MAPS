@@ -8,8 +8,7 @@
 """
 
 import json
-import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from compat_flask import current_app
 

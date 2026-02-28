@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta
 
 import pytest
 
 from app.extensions import db
-from app.models import ChatMessage, PendingMarker
+from app.models import ChatMessage
 from app.services import chat_service
 
 

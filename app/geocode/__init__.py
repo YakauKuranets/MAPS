@@ -12,4 +12,4 @@ from compat_flask import Blueprint
 
 bp = Blueprint("geocode", __name__)
 
-from . import routes  # noqa: F401
+from . import routes  # noqa: E402,F401

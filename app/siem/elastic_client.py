@@ -29,9 +29,17 @@ class ElasticClient:
 
         if self.config.auth_token and ":" in self.config.auth_token:
             username, password = self.config.auth_token.split(":", 1)
-            return Elasticsearch(hosts, basic_auth=(username, password), verify_certs=self.config.ssl_verify)
+            return Elasticsearch(
+                hosts,
+                basic_auth=(username, password),
+                verify_certs=self.config.ssl_verify,
+            )
         if self.config.auth_token:
-            return Elasticsearch(hosts, api_key=self.config.auth_token, verify_certs=self.config.ssl_verify)
+            return Elasticsearch(
+                hosts,
+                api_key=self.config.auth_token,
+                verify_certs=self.config.ssl_verify,
+            )
         return Elasticsearch(hosts, verify_certs=self.config.ssl_verify)
 
     def index_event(self, event: SIEMEvent) -> bool:
@@ -39,7 +47,12 @@ class ElasticClient:
         doc = self._to_document(event)
 
         try:
-            self.client.index(index=self.config.index_name, document=doc, id=event.event_id, refresh=False)
+            self.client.index(
+                index=self.config.index_name,
+                document=doc,
+                id=event.event_id,
+                refresh=False,
+            )
             logger.info("Event %s indexed to Elasticsearch", event.event_id)
             return True
         except Exception as exc:
@@ -60,7 +73,9 @@ class ElasticClient:
         ]
 
         try:
-            success, errors = helpers.bulk(self.client, actions, stats_only=False, raise_on_error=False)
+            success, errors = helpers.bulk(
+                self.client, actions, stats_only=False, raise_on_error=False
+            )
             logger.info("Bulk indexed %s events, %s failed", success, len(errors))
             return {"success": success, "failed": len(errors)}
         except Exception as exc:

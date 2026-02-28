@@ -30,8 +30,12 @@ from ..sockets import broadcast_event_sync
 # -------------------------------------------------------------
 
 
-def _make_display_name(user_id: str, username: Optional[str] = None,
-                       first_name: Optional[str] = None, last_name: Optional[str] = None) -> str:
+def _make_display_name(
+    user_id: str,
+    username: Optional[str] = None,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+) -> str:
     """Сформировать человекочитаемое имя пользователя.
 
     Требование проекта: в админ-чате нужно показывать "ник" Telegram,
@@ -52,7 +56,10 @@ def _make_display_name(user_id: str, username: Optional[str] = None,
     return f"Пользователь {user_id}"
 
 
-def _apply_profile_to_dialog(dialog: ChatDialog, profile: Optional[Dict[str, Any]]) -> bool:
+def _apply_profile_to_dialog(
+    dialog: ChatDialog,
+    profile: Optional[Dict[str, Any]],
+) -> bool:
     """Обновить поля Telegram-профиля в диалоге.
 
     Возвращает True, если что-то изменилось.
@@ -61,7 +68,9 @@ def _apply_profile_to_dialog(dialog: ChatDialog, profile: Optional[Dict[str, Any
         return False
 
     username = (profile.get('username') or profile.get('tg_username') or '').strip()
-    first_name = (profile.get('first_name') or profile.get('tg_first_name') or '').strip()
+    first_name = (
+        profile.get('first_name') or profile.get('tg_first_name') or ''
+    ).strip()
     last_name = (profile.get('last_name') or profile.get('tg_last_name') or '').strip()
 
     changed = False
@@ -94,7 +103,10 @@ def _apply_profile_to_dialog(dialog: ChatDialog, profile: Optional[Dict[str, Any
     return changed
 
 
-def _get_or_create_dialog(user_id: str, profile: Optional[Dict[str, Any]] = None) -> ChatDialog:
+def _get_or_create_dialog(
+    user_id: str,
+    profile: Optional[Dict[str, Any]] = None,
+) -> ChatDialog:
     """Получить или создать запись диалога для указанного пользователя."""
     user_id = str(user_id)
     dialog = ChatDialog.query.get(user_id)
@@ -112,7 +124,11 @@ def _get_or_create_dialog(user_id: str, profile: Optional[Dict[str, Any]] = None
 # -------------------------------------------------------------
 
 
-def list_conversations(status: Optional[str] = None, limit: int = 200, offset: int = 0) -> List[Dict[str, Any]]:
+def list_conversations(
+    status: Optional[str] = None,
+    limit: int = 200,
+    offset: int = 0,
+) -> List[Dict[str, Any]]:
     """Вернуть список диалогов.
 
     Каждый элемент содержит:
@@ -189,7 +205,18 @@ def list_conversations(status: Optional[str] = None, limit: int = 200, offset: i
     result: List[Dict[str, Any]] = []
     seen_users = set()
 
-    for user_id, text, sender, last_time, dlg_status, unread_for_admin, dlg_display_name, dlg_tg_username, dlg_first_name, dlg_last_name in rows:
+    for (
+        user_id,
+        text,
+        sender,
+        last_time,
+        dlg_status,
+        unread_for_admin,
+        dlg_display_name,
+        dlg_tg_username,
+        dlg_first_name,
+        dlg_last_name,
+    ) in rows:
         user_id_str = str(user_id)
         if user_id_str in seen_users:
             continue
@@ -389,7 +416,12 @@ def get_history_before(
     return [m.to_dict() for m in msgs]
 
 
-def send_message(user_id: str, text: str, sender: str = "admin", profile: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def send_message(
+    user_id: str,
+    text: str,
+    sender: str = "admin",
+    profile: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """Создать сообщение и при необходимости отправить его в Telegram.
 
     :param user_id: идентификатор пользователя Telegram
@@ -541,7 +573,10 @@ def delete_dialog(user_id: str) -> Dict[str, Any]:
         broadcast_event_sync('chat_deleted', {'user_id': user_id})
     except Exception:
         current_app.logger.exception('Ошибка при отправке события удаления диалога')
-    return {'deleted_messages': int(deleted_messages or 0), 'deleted_dialog': int(deleted_dialog or 0)}
+    return {
+        'deleted_messages': int(deleted_messages or 0),
+        'deleted_dialog': int(deleted_dialog or 0),
+    }
 
 
 # -------------------------------------------------------------
@@ -597,7 +632,8 @@ def list_notify_targets(limit: int = 200) -> List[Dict[str, Any]]:
 
     Уведомление != прочтение:
       - last_notified_admin_msg_id: до какого id мы уже УВЕДОМИЛИ (anti-duplicate)
-      - last_seen_admin_msg_id: до какого id пользователь реально ПОСМОТРЕЛ (для счётчика)
+      - last_seen_admin_msg_id: до какого id пользователь реально
+        ПОСМОТРЕЛ (для счётчика)
 
     Здесь возвращаем тех, у кого есть новые сообщения админа, которые ещё НЕ уведомлены.
     """
@@ -639,7 +675,11 @@ def list_notify_targets(limit: int = 200) -> List[Dict[str, Any]]:
             "display_name": display,
             "max_admin_id": int(max_admin_id or 0),
             "unread_for_user": int(dialog.unread_for_user or 0),
-            "last_message_at": dialog.last_message_at.isoformat() if dialog.last_message_at else None,
+            "last_message_at": (
+                dialog.last_message_at.isoformat()
+                if dialog.last_message_at
+                else None
+            ),
         })
     return items
 
@@ -656,7 +696,11 @@ def get_pending_admin_messages(user_id: str, limit: int = 10) -> Dict[str, Any]:
 
     msgs = (
         ChatMessage.query
-        .filter(ChatMessage.user_id == user_id, ChatMessage.sender == "admin", ChatMessage.id > last_id)
+        .filter(
+            ChatMessage.user_id == user_id,
+            ChatMessage.sender == "admin",
+            ChatMessage.id > last_id,
+        )
         .order_by(ChatMessage.id.asc())
         .limit(lim)
         .all()
@@ -676,7 +720,7 @@ def get_pending_admin_messages(user_id: str, limit: int = 10) -> Dict[str, Any]:
 
 
 def ack_admin_notified(user_id: str, cursor: int) -> Dict[str, Any]:
-    """Подтвердить, что бот уведомил пользователя о сообщениях до cursor (id включительно).
+    """Подтвердить, что бот уведомил пользователя о сообщениях до cursor.
 
     Не трогаем unread_for_user — это счётчик "непрочитано"; он сбрасывается только
     когда пользователь открыл переписку в боте (seen_admin).
@@ -711,7 +755,11 @@ def get_unread_for_user(user_id: str) -> Dict[str, Any]:
     try:
         unread = (
             db.session.query(func.count(ChatMessage.id))
-            .filter(ChatMessage.user_id == user_id, ChatMessage.sender == "admin", ChatMessage.id > last_seen)
+            .filter(
+                ChatMessage.user_id == user_id,
+                ChatMessage.sender == "admin",
+                ChatMessage.id > last_seen,
+            )
             .scalar()
         ) or 0
     except Exception:
@@ -727,7 +775,10 @@ def get_unread_for_user(user_id: str) -> Dict[str, Any]:
 
 
 def mark_seen_admin(user_id: str, cursor: int) -> Dict[str, Any]:
-    """Пометить сообщения админа как просмотренные пользователем до cursor (id включительно)."""
+    """Пометить сообщения админа как просмотренные пользователем до cursor.
+
+    Курсор включительный (по id).
+    """
     user_id = str(user_id)
     dialog = _get_or_create_dialog(user_id)
 
@@ -744,7 +795,11 @@ def mark_seen_admin(user_id: str, cursor: int) -> Dict[str, Any]:
         last_seen = int(getattr(dialog, "last_seen_admin_msg_id", 0) or 0)
         unread = (
             db.session.query(func.count(ChatMessage.id))
-            .filter(ChatMessage.user_id == user_id, ChatMessage.sender == "admin", ChatMessage.id > last_seen)
+            .filter(
+                ChatMessage.user_id == user_id,
+                ChatMessage.sender == "admin",
+                ChatMessage.id > last_seen,
+            )
             .scalar()
         ) or 0
         dialog.unread_for_user = int(unread)

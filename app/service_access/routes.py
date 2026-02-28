@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from compat_flask import jsonify, request, session
 
@@ -89,7 +89,9 @@ def service_access_request():
         if note:
             row.note = note
         db.session.commit()
-        return jsonify({"tg_user_id": row.tg_user_id, "status": row.normalize_status()}), 200
+        return jsonify(
+            {"tg_user_id": row.tg_user_id, "status": row.normalize_status()}
+        ), 200
 
     # Otherwise set pending
     row.status = "pending"
@@ -101,7 +103,9 @@ def service_access_request():
         row.note = note
 
     db.session.commit()
-    return jsonify({"tg_user_id": row.tg_user_id, "status": row.normalize_status()}), 200
+    return jsonify(
+        {"tg_user_id": row.tg_user_id, "status": row.normalize_status()}
+    ), 200
 
 
 @bp.get("/access/status")
@@ -123,7 +127,9 @@ def service_access_status():
     if not row:
         return jsonify({"tg_user_id": uid, "status": "guest"}), 200
 
-    return jsonify({"tg_user_id": row.tg_user_id, "status": row.normalize_status()}), 200
+    return jsonify(
+        {"tg_user_id": row.tg_user_id, "status": row.normalize_status()}
+    ), 200
 
 
 # -------------------------
@@ -132,20 +138,28 @@ def service_access_status():
 
 
 def _admin_actor() -> str:
-    return str(session.get("admin_username") or session.get("username") or "admin").strip()[:128] or "admin"
+    return (
+        str(session.get("admin_username") or session.get("username") or "admin")
+        .strip()[:128]
+        or "admin"
+    )
 
 
 @bp.get("/access/admin/pending")
 def admin_list_pending():
     """List pending service access requests."""
     require_admin(min_role="editor")
-    rows = ServiceAccess.query.filter(ServiceAccess.status == "pending").order_by(ServiceAccess.requested_at.desc().nullslast()).all()
+    rows = (
+        ServiceAccess.query.filter(ServiceAccess.status == "pending")
+        .order_by(ServiceAccess.requested_at.desc().nullslast())
+        .all()
+    )
     return jsonify({"items": [r.to_dict() for r in rows]}), 200
 
 
 @bp.get("/access/admin/pending_count")
 def admin_pending_count():
-    """Count pending service access requests (lightweight for Command Center badge)."""
+    """Count pending service requests for Command Center badge."""
     require_admin(min_role="editor")
     cnt = ServiceAccess.query.filter(ServiceAccess.status == "pending").count()
     return jsonify({"count": int(cnt)}), 200
@@ -155,7 +169,10 @@ def admin_pending_count():
 def admin_list_users():
     """List all service access rows."""
     require_admin(min_role="editor")
-    rows = ServiceAccess.query.order_by(ServiceAccess.updated_at.desc().nullslast()).all()
+    rows = (
+        ServiceAccess.query.order_by(ServiceAccess.updated_at.desc().nullslast())
+        .all()
+    )
     return jsonify({"items": [r.to_dict() for r in rows]}), 200
 
 
@@ -192,7 +209,8 @@ def admin_approve():
             send_telegram_message(
                 bot_token,
                 uid,
-                "✅ Доступ к разделу «Служба» одобрен. Теперь в боте появится кнопка «Служба».",
+                "✅ Доступ к разделу «Служба» одобрен. "
+                "Теперь в боте появится кнопка «Служба».",
             )
     except Exception:
         pass

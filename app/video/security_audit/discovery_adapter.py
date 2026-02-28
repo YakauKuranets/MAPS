@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Адаптер для обнаружения камер с использованием AutoDiscoveryService и fallback сканера."""
 
-import asyncio
 import logging
+
+import aiohttp
 from typing import Optional
 
-from app.video.discovery import AutoDiscoveryService, DiscoveryResult
+from app.video.discovery import AutoDiscoveryService
 from .discovery import (  # наш быстрый асинхронный сканер
     DetectedCamera,
     scan_port,

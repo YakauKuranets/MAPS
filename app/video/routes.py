@@ -27,7 +27,7 @@ from app.auth.decorators import jwt_or_api_required, require_audit_auth
 
 # ===== ДОБАВЛЕННЫЕ ИМПОРТЫ ДЛЯ АУДИТА =====
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from celery_worker import run_audit_task, run_wifi_audit_task
 from app.realtime.tokens import generate_websocket_token
 # ===== КОНЕЦ ДОБАВЛЕННЫХ ИМПОРТОВ =====
@@ -79,17 +79,8 @@ def _auth_payload(terminal: Any) -> Dict[str, Any]:
 def _extract_creds(terminal: Any) -> Tuple[str, str]:
     data = _auth_payload(terminal)
 
-    user = (
-        data.get("user")
-        or data.get("login")
-        or ""
-    )
-    secret = (
-        data.get("hash")
-        or data.get("pass")
-        or data.get("password")
-        or ""
-    )
+    user = data.get("user") or data.get("login") or ""
+    secret = data.get("hash") or data.get("pass") or data.get("password") or ""
     return str(user), str(secret)
 
 
@@ -226,7 +217,9 @@ def video_live_proxy(channel_id: int):
     )
 
     if str(terminal_type).upper() != "LEGACY_FTP":
-        return jsonify({"error": "terminal_type_not_supported", "terminal_type": terminal_type}), 400
+        return jsonify(
+            {"error": "terminal_type_not_supported", "terminal_type": terminal_type}
+        ), 400
 
     ip = _terminal_ip(terminal)
     if not ip:
@@ -234,8 +227,15 @@ def video_live_proxy(channel_id: int):
 
     user, password = _extract_creds(terminal)
     if not user:
-        return jsonify({"error": "terminal_credentials_missing", "hint": "Set terminal.auth_credentials"}), 400
-    channel_number = getattr(channel, "channel_number", None) or getattr(channel, "id", None)
+        return jsonify(
+            {
+                "error": "terminal_credentials_missing",
+                "hint": "Set terminal.auth_credentials",
+            }
+        ), 400
+    channel_number = getattr(channel, "channel_number", None) or getattr(
+        channel, "id", None
+    )
 
     target_url = f"http://{ip}/stream/rtsp2mjpeg.php"
     params = {
@@ -256,7 +256,9 @@ def video_live_proxy(channel_id: int):
 
     def generate():
         with httpx.Client(timeout=None) as client:
-            with client.stream("GET", target_url, params=params, cookies=cookies) as upstream:
+            with client.stream(
+                "GET", target_url, params=params, cookies=cookies
+            ) as upstream:
                 upstream.raise_for_status()
                 for chunk in upstream.iter_bytes():
                     if chunk:
@@ -286,10 +288,28 @@ def terminal_ping(terminal_id: int):
     try:
         with socket.create_connection((ip, port), timeout=timeout_s):
             pass
-        elapsed_ms = int((dt.datetime.now(tz=dt.timezone.utc) - start).total_seconds() * 1000)
-        return jsonify({"ok": True, "terminal_id": terminal_id, "ip": ip, "port": port, "latency_ms": elapsed_ms}), 200
+        elapsed_ms = int(
+            (dt.datetime.now(tz=dt.timezone.utc) - start).total_seconds() * 1000
+        )
+        return jsonify(
+            {
+                "ok": True,
+                "terminal_id": terminal_id,
+                "ip": ip,
+                "port": port,
+                "latency_ms": elapsed_ms,
+            }
+        ), 200
     except OSError as exc:
-        return jsonify({"ok": False, "terminal_id": terminal_id, "ip": ip, "port": port, "error": str(exc)}), 200
+        return jsonify(
+            {
+                "ok": False,
+                "terminal_id": terminal_id,
+                "ip": ip,
+                "port": port,
+                "error": str(exc),
+            }
+        ), 200
 
 
 @bp.get("/archive/index/<int:channel_id>")
@@ -312,7 +332,12 @@ async def video_archive_index(channel_id: int):
 
     user, password = _extract_creds(terminal)
     if not user:
-        return jsonify({"error": "terminal_credentials_missing", "hint": "Set terminal.auth_credentials"}), 400
+        return jsonify(
+            {
+                "error": "terminal_credentials_missing",
+                "hint": "Set terminal.auth_credentials",
+            }
+        ), 400
     root_path = _archive_root_path(terminal)
     prefix = _channel_prefix(channel)
 
@@ -352,7 +377,12 @@ def video_archive_stream():
 
     user, password = _extract_creds(terminal)
     if not user:
-        return jsonify({"error": "terminal_credentials_missing", "hint": "Set terminal.auth_credentials"}), 400
+        return jsonify(
+            {
+                "error": "terminal_credentials_missing",
+                "hint": "Set terminal.auth_credentials",
+            }
+        ), 400
 
     ftp_url = (
         f"ftp://{quote(user, safe='')}:{quote(password, safe='')}@{ip}/"
@@ -409,7 +439,7 @@ def start_audit():
     data = request.get_json()
     if not data:
         return jsonify({"error": "No JSON payload"}), 400
-    
+
     ip = data.get("ip")
     port = data.get("port", 80)
     username = data.get("username", "admin")
@@ -420,27 +450,28 @@ def start_audit():
         return jsonify({"error": "ip required"}), 400
 
     task_id = str(uuid.uuid4())
-    
-    # Используем models.db для доступа к сессии (предполагается, что db доступен через models)
+
+    # Используем models.db для доступа к сессии
+    # (предполагается, что db доступен через models)
     result = models.CameraAuditResult(
         target_ip=ip,
         target_port=port,
         username=username,
         success=False,
-        details={"task_id": task_id, "status": "pending"}
+        details={"task_id": task_id, "status": "pending"},
     )
     models.db.session.add(result)
     models.db.session.commit()
-    
+
     run_audit_task.delay(
         task_id=task_id,
         ip=ip,
         port=port,
         username=username,
         proxy_list=proxy_list,
-        use_vuln_check=use_vuln_check
+        use_vuln_check=use_vuln_check,
     )
-    
+
     return jsonify({"task_id": task_id, "status": "started"}), 202
 
 
@@ -449,18 +480,22 @@ def start_audit():
 def get_audit_result(task_id):
     """Возвращает результат аудита по ID задачи."""
     result = models.CameraAuditResult.query.filter(
-        models.CameraAuditResult.details['task_id'].astext == task_id
+        models.CameraAuditResult.details["task_id"].astext == task_id
     ).first()
     if not result:
         return jsonify({"error": "Task not found"}), 404
-    
-    return jsonify({
-        "ip": result.target_ip,
-        "success": result.success,
-        "password": result.password_found,
-        "method": result.method,
-        "details": result.details
-    })
+
+    return jsonify(
+        {
+            "ip": result.target_ip,
+            "success": result.success,
+            "password": result.password_found,
+            "method": result.method,
+            "details": result.details,
+        }
+    )
+
+
 # ===== КОНЕЦ НОВЫХ ЭНДПОИНТОВ =====
 
 
@@ -480,23 +515,29 @@ def start_wifi_audit():
     if not bssid or not essid:
         return jsonify({"error": "bssid and essid required"}), 400
 
-    # Кэширование: если для той же сети есть свежий completed результат — переиспользуем.
+    # Кэширование: если для той же сети есть свежий
+    # completed результат — переиспользуем.
     fresh_cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     cached = (
-        models.WifiAuditResult.query
-        .filter(models.WifiAuditResult.bssid == bssid)
+        models.WifiAuditResult.query.filter(models.WifiAuditResult.bssid == bssid)
         .filter(models.WifiAuditResult.security_type == security_type)
         .filter(models.WifiAuditResult.updated_at.isnot(None))
         .filter(models.WifiAuditResult.updated_at >= fresh_cutoff)
         .order_by(models.WifiAuditResult.updated_at.desc())
         .first()
     )
-    if cached and isinstance(cached.details, dict) and cached.details.get("status") == "completed":
-        return jsonify({
-            "taskId": cached.task_id,
-            "status": "cached",
-            "estimatedTime": int(cached.estimated_time_seconds or 0),
-        }), 200
+    if (
+        cached
+        and isinstance(cached.details, dict)
+        and cached.details.get("status") == "completed"
+    ):
+        return jsonify(
+            {
+                "taskId": cached.task_id,
+                "status": "cached",
+                "estimatedTime": int(cached.estimated_time_seconds or 0),
+            }
+        ), 200
 
     task_id = str(uuid.uuid4())
 
@@ -529,15 +570,19 @@ def start_wifi_audit():
     )
 
     ws_channel = f"wifi_audit:{task_id}"
-    ws_token = generate_websocket_token({"task_id": task_id, "channel": ws_channel}, expires_delta=timedelta(hours=1))
+    ws_token = generate_websocket_token(
+        {"task_id": task_id, "channel": ws_channel}, expires_delta=timedelta(hours=1)
+    )
 
-    return jsonify({
-        "taskId": task_id,
-        "status": "started",
-        "estimatedTime": 300,
-        "wsToken": ws_token,
-        "wsChannel": ws_channel,
-    }), 202
+    return jsonify(
+        {
+            "taskId": task_id,
+            "status": "started",
+            "estimatedTime": 300,
+            "wsToken": ws_token,
+            "wsChannel": ws_channel,
+        }
+    ), 202
 
 
 @bp.get("/wifi/audit/result/<task_id>")
@@ -548,17 +593,21 @@ def get_wifi_audit_result(task_id):
         return jsonify({"error": "Task not found"}), 404
 
     details = result.details or {}
-    return jsonify({
-        "bssid": result.bssid,
-        "essid": result.essid,
-        "isVulnerable": bool(result.is_vulnerable),
-        "vulnerabilityType": result.vulnerability_type,
-        "foundPassword": result.found_password,
-        "message": details.get("message", ""),
-        "status": details.get("status", "completed"),
-        "progress": int(result.progress or details.get("progress", 0)),
-        "estimatedTime": int(result.estimated_time_seconds or details.get("estimatedTime", 0)),
-    })
+    return jsonify(
+        {
+            "bssid": result.bssid,
+            "essid": result.essid,
+            "isVulnerable": bool(result.is_vulnerable),
+            "vulnerabilityType": result.vulnerability_type,
+            "foundPassword": result.found_password,
+            "message": details.get("message", ""),
+            "status": details.get("status", "completed"),
+            "progress": int(result.progress or details.get("progress", 0)),
+            "estimatedTime": int(
+                result.estimated_time_seconds or details.get("estimatedTime", 0)
+            ),
+        }
+    )
 
 
 @bp.get("/wifi/audit/status/<task_id>")
@@ -570,25 +619,29 @@ def get_wifi_audit_status(task_id):
 
     details = result.details or {}
     status = details.get("status", "pending")
-    return jsonify({
-        "taskId": result.task_id,
-        "status": status,
-        "progress": int(result.progress or details.get("progress", 0)),
-        "estimatedTime": int(result.estimated_time_seconds or details.get("estimatedTime", 0)),
-        "isVulnerable": bool(result.is_vulnerable),
-        "vulnerabilityType": result.vulnerability_type,
-        "foundPassword": result.found_password,
-        "message": details.get("message", ""),
-    })
+    return jsonify(
+        {
+            "taskId": result.task_id,
+            "status": status,
+            "progress": int(result.progress or details.get("progress", 0)),
+            "estimatedTime": int(
+                result.estimated_time_seconds or details.get("estimatedTime", 0)
+            ),
+            "isVulnerable": bool(result.is_vulnerable),
+            "vulnerabilityType": result.vulnerability_type,
+            "foundPassword": result.found_password,
+            "message": details.get("message", ""),
+        }
+    )
 
 
 @bp.get("/osint/cameras")
 @jwt_or_api_required
 def list_global_cameras():
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
-    country = request.args.get('country')
-    vendor = request.args.get('vendor')
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 20, type=int)
+    country = request.args.get("country")
+    vendor = request.args.get("vendor")
 
     query = models.GlobalCamera.query
     if country:
@@ -597,16 +650,21 @@ def list_global_cameras():
         query = query.filter_by(vendor=vendor)
 
     cameras = query.paginate(page=page, per_page=per_page)
-    return jsonify({
-        'items': [{
-            'ip': c.ip,
-            'port': c.port,
-            'vendor': c.vendor,
-            'model': c.model,
-            'country': c.country,
-            'city': c.city,
-            'org': c.org,
-        } for c in cameras.items],
-        'total': cameras.total,
-        'page': page,
-    })
+    return jsonify(
+        {
+            "items": [
+                {
+                    "ip": c.ip,
+                    "port": c.port,
+                    "vendor": c.vendor,
+                    "model": c.model,
+                    "country": c.country,
+                    "city": c.city,
+                    "org": c.org,
+                }
+                for c in cameras.items
+            ],
+            "total": cameras.total,
+            "page": page,
+        }
+    )

@@ -27,7 +27,12 @@ def issue_token(secret_key: str, payload: Dict[str, Any]) -> str:
     return _serializer(secret_key).dumps(payload)
 
 
-def verify_token(secret_key: str, token: str, *, max_age: int) -> Optional[Dict[str, Any]]:
+def verify_token(
+    secret_key: str,
+    token: str,
+    *,
+    max_age: int,
+) -> Optional[Dict[str, Any]]:
     """Проверить токен. Возвращает payload или None."""
     try:
         data = _serializer(secret_key).loads(token, max_age=max_age)
@@ -36,7 +41,11 @@ def verify_token(secret_key: str, token: str, *, max_age: int) -> Optional[Dict[
         return None
 
 
-def generate_websocket_token(payload: Dict[str, Any], *, expires_delta: Optional[timedelta] = None) -> str:
+def generate_websocket_token(
+    payload: Dict[str, Any],
+    *,
+    expires_delta: Optional[timedelta] = None,
+) -> str:
     """Generate token for WS clients using app secret."""
     secret = current_app.config.get("JWT_SECRET_KEY") or current_app.secret_key
     data = dict(payload or {})
@@ -45,7 +54,11 @@ def generate_websocket_token(payload: Dict[str, Any], *, expires_delta: Optional
     return issue_token(secret, data)
 
 
-def verify_websocket_token(token: str, *, max_age: Optional[int] = None) -> Optional[Dict[str, Any]]:
+def verify_websocket_token(
+    token: str,
+    *,
+    max_age: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
     """Verify websocket token against app secret/current config."""
     secret = current_app.config.get("JWT_SECRET_KEY") or current_app.secret_key
     ttl = int(max_age or current_app.config.get("REALTIME_TOKEN_TTL_SEC", 3600))

@@ -10,8 +10,7 @@ import asyncio
 import logging
 import random
 import time
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)

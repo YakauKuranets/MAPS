@@ -6,7 +6,7 @@ import types
 # Optional dependency in video security audit chain may be absent in CI/test env.
 sys.modules.setdefault("aiohttp_digest_auth", types.SimpleNamespace(DigestAuth=object))
 
-import app.tasks.shodan_scanner as scanner
+import app.tasks.shodan_scanner as scanner  # noqa: E402
 
 
 class _FakeSession:

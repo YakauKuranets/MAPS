@@ -18,11 +18,11 @@ from env_loader import load_dotenv_like
 
 # Load .env if present (so запуск из PyCharm подхватывал конфиг)
 load_dotenv_like()
-from threading import Thread
+from threading import Thread  # noqa: E402
 
-from app import create_app
-from app.config import DevelopmentConfig, ProductionConfig
-from app.sockets import start_socket_server
+from app import create_app  # noqa: E402
+from app.config import DevelopmentConfig, ProductionConfig  # noqa: E402
+from app.sockets import start_socket_server  # noqa: E402
 
 
 def _select_config_class() -> type:

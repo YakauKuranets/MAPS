@@ -42,7 +42,9 @@ def upgrade():
     conn = op.get_bind()
 
     # chat_messages: ускорение счётчиков непрочитанного и выборок
-    if _table_exists(conn, "chat_messages") and not _index_exists(conn, "chat_messages", "ix_chat_messages_user_sender_isread"):
+    if _table_exists(conn, "chat_messages") and not _index_exists(
+        conn, "chat_messages", "ix_chat_messages_user_sender_isread"
+    ):
         op.create_index(
             "ix_chat_messages_user_sender_isread",
             "chat_messages",
@@ -50,13 +52,17 @@ def upgrade():
         )
 
     # tracking_points: ускорение таймлайна по сессии и по user_id
-    if _table_exists(conn, "tracking_points") and not _index_exists(conn, "tracking_points", "ix_tracking_points_session_ts"):
+    if _table_exists(conn, "tracking_points") and not _index_exists(
+        conn, "tracking_points", "ix_tracking_points_session_ts"
+    ):
         op.create_index(
             "ix_tracking_points_session_ts",
             "tracking_points",
             ["session_id", "ts"],
         )
-    if _table_exists(conn, "tracking_points") and not _index_exists(conn, "tracking_points", "ix_tracking_points_user_ts"):
+    if _table_exists(conn, "tracking_points") and not _index_exists(
+        conn, "tracking_points", "ix_tracking_points_user_ts"
+    ):
         op.create_index(
             "ix_tracking_points_user_ts",
             "tracking_points",
@@ -64,7 +70,9 @@ def upgrade():
         )
 
     # duty_events: ускорение выборок по смене
-    if _table_exists(conn, "duty_events") and not _index_exists(conn, "duty_events", "ix_duty_events_shift_ts"):
+    if _table_exists(conn, "duty_events") and not _index_exists(
+        conn, "duty_events", "ix_duty_events_shift_ts"
+    ):
         op.create_index(
             "ix_duty_events_shift_ts",
             "duty_events",
@@ -75,11 +83,19 @@ def upgrade():
 def downgrade():
     conn = op.get_bind()
     # drop in reverse order, only if exist
-    if _table_exists(conn, "duty_events") and _index_exists(conn, "duty_events", "ix_duty_events_shift_ts"):
+    if _table_exists(conn, "duty_events") and _index_exists(
+        conn, "duty_events", "ix_duty_events_shift_ts"
+    ):
         op.drop_index("ix_duty_events_shift_ts", table_name="duty_events")
-    if _table_exists(conn, "tracking_points") and _index_exists(conn, "tracking_points", "ix_tracking_points_user_ts"):
+    if _table_exists(conn, "tracking_points") and _index_exists(
+        conn, "tracking_points", "ix_tracking_points_user_ts"
+    ):
         op.drop_index("ix_tracking_points_user_ts", table_name="tracking_points")
-    if _table_exists(conn, "tracking_points") and _index_exists(conn, "tracking_points", "ix_tracking_points_session_ts"):
+    if _table_exists(conn, "tracking_points") and _index_exists(
+        conn, "tracking_points", "ix_tracking_points_session_ts"
+    ):
         op.drop_index("ix_tracking_points_session_ts", table_name="tracking_points")
-    if _table_exists(conn, "chat_messages") and _index_exists(conn, "chat_messages", "ix_chat_messages_user_sender_isread"):
+    if _table_exists(conn, "chat_messages") and _index_exists(
+        conn, "chat_messages", "ix_chat_messages_user_sender_isread"
+    ):
         op.drop_index("ix_chat_messages_user_sender_isread", table_name="chat_messages")
