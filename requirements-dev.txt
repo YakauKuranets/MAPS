@@ -1,0 +1,16 @@
+-r requirements.txt
+
+# ═══ Testing ═══
+pytest>=7.4
+pytest-asyncio>=0.23
+pytest-cov>=4.1
+
+# ═══ Fuzzing ═══
+atheris
+
+# ═══ Code Quality ═══
+ruff>=0.1
+mypy>=1.7
+
+# ═══ YAML validation (used in tests) ═══
+PyYAML>=6.0

@@ -1,0 +1,93 @@
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: mapv12_redis_dev
+    ports:
+      - "6379:6379"
+    networks:
+      - dutytracker_network
+    restart: unless-stopped
+
+  db:
+    image: postgis/postgis:15-3.4
+    container_name: mapv12_db_dev
+    environment:
+      POSTGRES_DB: mapv12
+      POSTGRES_USER: mapv12
+      POSTGRES_PASSWORD: mapv12
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - dutytracker_network
+    restart: unless-stopped
+
+  web:
+    build: .
+    container_name: mapv12_web_dev
+    command: ["python", "run.py"]
+    environment:
+      DATABASE_URI: postgresql+psycopg2://mapv12:mapv12@db:5432/mapv12
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: CHANGE_ME_dev_secret_key_minimum_32_chars_long
+      JWT_SECRET_KEY: CHANGE_ME_dev_jwt_secret_key_32_chars
+      FERNET_MASTER_KEY: PLACEHOLDER
+      FLASK_ENV: development
+      APP_ENV: development
+    volumes:
+      - .:/app
+      - ./uploads:/app/uploads
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - dutytracker_network
+    restart: unless-stopped
+
+  bot:
+    build: .
+    container_name: mapv12_bot_dev
+    command: ["python", "bot.py"]
+    environment:
+      MAP_API_URL: "http://web:5000"
+      DATABASE_URI: postgresql+psycopg2://mapv12:mapv12@db:5432/mapv12
+      REDIS_URL: redis://redis:6379/0
+      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN:-}"
+      FERNET_MASTER_KEY: PLACEHOLDER
+    volumes:
+      - .:/app
+    depends_on:
+      - web
+      - db
+      - redis
+    networks:
+      - dutytracker_network
+    restart: unless-stopped
+
+  proxy:
+    image: dperson/torproxy
+    container_name: dutytracker_proxy
+    ports:
+      - "9050:9050"
+      - "9051:9051"
+    environment:
+      - TOR_MAX_CIRCUIT_DIRTINESS=30
+    networks:
+      - dutytracker_network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgis_data:
+
+networks:
+  dutytracker_network:
+    driver: bridge
