@@ -36,11 +36,15 @@ class Channel(db.Model):
     """
 
     __tablename__ = "chat2_channels"
-    id: str = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: str = db.Column(
+        db.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
     type: str = db.Column(db.String(16), nullable=False)
     shift_id: Optional[int] = db.Column(db.Integer, nullable=True)
     marker_id: Optional[int] = db.Column(db.Integer, nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
     last_message_at = db.Column(db.DateTime, nullable=True)
 
     messages = db.relationship("Message", backref="channel", lazy="dynamic")
@@ -60,8 +64,12 @@ class Message(db.Model):
     """
 
     __tablename__ = "chat2_messages"
-    id: str = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    channel_id: str = db.Column(db.String(36), db.ForeignKey("chat2_channels.id"), nullable=False)
+    id: str = db.Column(
+        db.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    channel_id: str = db.Column(
+        db.String(36), db.ForeignKey("chat2_channels.id"), nullable=False
+    )
     sender_type: str = db.Column(db.String(16), nullable=False)
     sender_id: str = db.Column(db.String(64), nullable=False)
     client_msg_id: Optional[str] = db.Column(db.String(64), nullable=True)
@@ -80,8 +88,12 @@ class Message(db.Model):
     read_count: int = db.Column(db.Integer, nullable=False, default=0)
     # Дополнительные метаданные (например, идентификатор шаблона). Храним JSON для
     # гибкого расширения. В SQLite используем Text, в других СУБД — JSON.
-    meta_json: Optional[dict] = db.Column(db.JSON().with_variant(db.Text(), "sqlite"), nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    meta_json: Optional[dict] = db.Column(
+        db.JSON().with_variant(db.Text(), "sqlite"), nullable=True
+    )
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
     edited_at = db.Column(db.DateTime, nullable=True)
     deleted_at = db.Column(db.DateTime, nullable=True)
 
@@ -122,14 +134,18 @@ class ChannelMember(db.Model):
 
     __tablename__ = "chat2_members"
     id = db.Column(db.Integer, primary_key=True)
-    channel_id: str = db.Column(db.String(36), db.ForeignKey("chat2_channels.id"), nullable=False)
+    channel_id: str = db.Column(
+        db.String(36), db.ForeignKey("chat2_channels.id"), nullable=False
+    )
     member_type: str = db.Column(db.String(16), nullable=False)
     member_id: str = db.Column(db.String(64), nullable=False)
     last_read_message_id: Optional[str] = db.Column(db.String(36), nullable=True)
     last_read_at = db.Column(db.DateTime, nullable=True)
 
     __table_args__ = (
-        db.UniqueConstraint("channel_id", "member_type", "member_id", name="uq_chat2_members_member"),
+        db.UniqueConstraint(
+            "channel_id", "member_type", "member_id", name="uq_chat2_members_member"
+        ),
     )
 
     def to_dict(self) -> dict:
@@ -139,7 +155,9 @@ class ChannelMember(db.Model):
             "member_type": self.member_type,
             "member_id": self.member_id,
             "last_read_message_id": self.last_read_message_id,
-            "last_read_at": self.last_read_at.isoformat() if self.last_read_at else None,
+            "last_read_at": self.last_read_at.isoformat()
+            if self.last_read_at
+            else None,
         }
 
 
@@ -155,9 +173,13 @@ class PushToken(db.Model):
     member_type = db.Column(db.String(16), nullable=False)  # admin или tracker
     member_id = db.Column(db.String(64), nullable=False)
     token = db.Column(db.String(256), nullable=False, unique=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
     __table_args__ = (
-        db.UniqueConstraint("member_type", "member_id", "token", name="uq_chat2_push_member_token"),
+        db.UniqueConstraint(
+            "member_type", "member_id", "token", name="uq_chat2_push_member_token"
+        ),
     )
 
     def to_dict(self) -> dict:

@@ -40,7 +40,9 @@ class SplunkClient:
             if response.status_code == 200:
                 logger.info("Event %s sent to Splunk HEC", event.event_id)
                 return True
-            logger.error("Splunk HEC error: %s - %s", response.status_code, response.text)
+            logger.error(
+                "Splunk HEC error: %s - %s", response.status_code, response.text
+            )
             return False
         except requests.exceptions.RequestException as exc:
             logger.error("Splunk connection error: %s", exc)
@@ -56,21 +58,34 @@ class SplunkClient:
             if response.status_code == 200:
                 logger.info("Batch of %s events sent to Splunk HEC", len(events))
                 return {"success": True, "count": len(events)}
-            logger.error("Splunk batch error: %s - %s", response.status_code, response.text)
+            logger.error(
+                "Splunk batch error: %s - %s", response.status_code, response.text
+            )
             return {"success": False, "error": response.text}
         except requests.exceptions.RequestException as exc:
             logger.error("Splunk connection error: %s", exc)
             return {"success": False, "error": str(exc)}
 
-    def send_metric(self, metric_name: str, value: float, dimensions: dict | None = None) -> bool:
+    def send_metric(
+        self, metric_name: str, value: float, dimensions: dict | None = None
+    ) -> bool:
         """Отправляет метрику через REST API."""
         api_url = f"{self.config.endpoint}/v2/datapoint"
 
-        payload = {"gauge": [{"metric": metric_name, "value": value, "dimensions": dimensions or {}}]}
-        headers = {"Content-Type": "application/json", "X-SF-TOKEN": self.config.auth_token}
+        payload = {
+            "gauge": [
+                {"metric": metric_name, "value": value, "dimensions": dimensions or {}}
+            ]
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "X-SF-TOKEN": self.config.auth_token,
+        }
 
         try:
-            response = self.session.post(api_url, json=payload, headers=headers, timeout=10)
+            response = self.session.post(
+                api_url, json=payload, headers=headers, timeout=10
+            )
             return response.status_code == 200
         except requests.exceptions.RequestException as exc:
             logger.error("Failed to send metric: %s", exc)

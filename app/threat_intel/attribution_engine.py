@@ -70,9 +70,13 @@ async def ask_ai_advisor(text: str, source: str) -> dict:
 async def enrich_actor_profile(alias: str, email: str | None = None) -> dict[str, Any]:
     """Legacy enrichment entrypoint writing data through Neo4j relation engine."""
     if email:
-        await kraken_db.add_evidence(alias, "THREAT_ACTOR", email, "EMAIL", "HAS_EMAIL", weight=0.9)
+        await kraken_db.add_evidence(
+            alias, "THREAT_ACTOR", email, "EMAIL", "HAS_EMAIL", weight=0.9
+        )
     profile = await kraken_db.get_actor_profile(alias)
-    profile["ai_analysis"] = await ask_ai_advisor(f"alias={alias};email={email or ''}", "darknet_forum")
+    profile["ai_analysis"] = await ask_ai_advisor(
+        f"alias={alias};email={email or ''}", "darknet_forum"
+    )
     return profile
 
 
@@ -124,8 +128,20 @@ async def process_actor_image(alias: str, image_path: str):
 
 
 async def _inject_noise_nodes(alias: str):
-    fake_devices = ["Canon EOS 5D", "iPhone 12", "Samsung Galaxy S21", "Nikon D850", "Google Pixel 6"]
-    fake_regions = ["55.75,37.61", "40.71,-74.00", "34.05,-118.24", "51.50,-0.12", "35.68,139.76"]
+    fake_devices = [
+        "Canon EOS 5D",
+        "iPhone 12",
+        "Samsung Galaxy S21",
+        "Nikon D850",
+        "Google Pixel 6",
+    ]
+    fake_regions = [
+        "55.75,37.61",
+        "40.71,-74.00",
+        "34.05,-118.24",
+        "51.50,-0.12",
+        "35.68,139.76",
+    ]
 
     for _ in range(random.randint(2, 3)):
         fake_device = random.choice(fake_devices)
@@ -159,18 +175,26 @@ async def process_new_intel(raw_intel: dict[str, Any]) -> dict[str, Any]:
 
     wallet = raw_intel.get("btc_wallet")
     if wallet:
-        await kraken_db.add_evidence(alias, "THREAT_ACTOR", wallet, "CRYPTO_WALLET", "RECEIVED_FUNDS")
+        await kraken_db.add_evidence(
+            alias, "THREAT_ACTOR", wallet, "CRYPTO_WALLET", "RECEIVED_FUNDS"
+        )
 
     ip_address = raw_intel.get("ip")
     if ip_address:
-        await kraken_db.add_evidence(alias, "THREAT_ACTOR", ip_address, "IP_ADDRESS", "USED_INFRA")
+        await kraken_db.add_evidence(
+            alias, "THREAT_ACTOR", ip_address, "IP_ADDRESS", "USED_INFRA"
+        )
 
     pgp_key = raw_intel.get("pgp_key")
     if pgp_key:
-        await kraken_db.add_evidence(alias, "THREAT_ACTOR", pgp_key, "PGP_KEY", "SIGNED_WITH")
+        await kraken_db.add_evidence(
+            alias, "THREAT_ACTOR", pgp_key, "PGP_KEY", "SIGNED_WITH"
+        )
 
     if alias != "unknown_actor" and raw_intel.get("email"):
-        await kraken_db.add_evidence(alias, "THREAT_ACTOR", raw_intel["email"], "EMAIL", "HAS_EMAIL", weight=0.9)
+        await kraken_db.add_evidence(
+            alias, "THREAT_ACTOR", raw_intel["email"], "EMAIL", "HAS_EMAIL", weight=0.9
+        )
 
     profile = await kraken_db.get_actor_profile(alias)
     profile["ai_analysis"] = await ask_ai_advisor(str(raw_intel), "darknet_forum")

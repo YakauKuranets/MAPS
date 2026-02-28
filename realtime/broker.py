@@ -52,7 +52,10 @@ def get_channel() -> str:
             return channel
     except Exception:
         pass
-    return (os.getenv("REALTIME_REDIS_CHANNEL") or DEFAULT_CHANNEL).strip() or DEFAULT_CHANNEL
+    return (
+        (os.getenv("REALTIME_REDIS_CHANNEL") or DEFAULT_CHANNEL).strip()
+        or DEFAULT_CHANNEL
+    )
 
 
 def _parse_ts(raw: Any) -> datetime:
@@ -87,7 +90,11 @@ def _normalize_telemetry_payload(payload: Dict[str, Any]) -> Optional[Dict[str, 
             "user_id": str(user_id),
             "lat": float(lat),
             "lon": float(lon),
-            "accuracy_m": float(body.get("accuracy_m")) if body.get("accuracy_m") is not None else None,
+            "accuracy_m": (
+                float(body.get("accuracy_m"))
+                if body.get("accuracy_m") is not None
+                else None
+            ),
             "kind": str(body.get("kind") or "live")[:16],
             "ts": _parse_ts(body.get("ts")),
             "raw_json": json.dumps(body, ensure_ascii=False),
@@ -107,7 +114,8 @@ class RedisBroker:
         if not self.redis_url or Redis is None:
             return None
         if self._sync_client is None:
-            # Переиспользуем один клиент на процесс: без connect/disconnect на каждый publish.
+            # Переиспользуем один клиент на процесс:
+            # без connect/disconnect на каждый publish.
             self._sync_client = Redis.from_url(self.redis_url, decode_responses=True)
         return self._sync_client
 
@@ -124,7 +132,10 @@ class RedisBroker:
         except Exception:
             # В случае stale-соединения пробуем 1 re-connect и повтор.
             try:
-                self._sync_client = Redis.from_url(self.redis_url, decode_responses=True)
+                self._sync_client = Redis.from_url(
+                    self.redis_url,
+                    decode_responses=True,
+                )
                 assert self._sync_client is not None
                 self._sync_client.publish(channel, body)
                 return True
@@ -279,7 +290,10 @@ async def consume_telemetry_save_queue(
 
         try:
             while True:
-                msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                msg = await pubsub.get_message(
+                    ignore_subscribe_messages=True,
+                    timeout=1.0,
+                )
                 if msg and msg.get("type") == "message":
                     raw = msg.get("data")
                     if raw:
@@ -293,7 +307,10 @@ async def consume_telemetry_save_queue(
                             pass
 
                 now = loop.time()
-                if batch and (len(batch) >= batch_size or (now - last_flush) >= flush_interval_sec):
+                if batch and (
+                    len(batch) >= batch_size
+                    or (now - last_flush) >= flush_interval_sec
+                ):
                     try:
                         flush_telemetry_batch(batch)
                     finally:

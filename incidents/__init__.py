@@ -17,4 +17,4 @@ from compat_flask import Blueprint
 bp = Blueprint('incidents', __name__, url_prefix='/api/incidents')
 
 # Импорт маршрутов для регистрации
-from . import routes  # noqa: F401
+from . import routes  # noqa: E402,F401

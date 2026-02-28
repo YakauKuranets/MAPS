@@ -18,9 +18,11 @@ import requests
 try:
     from app.config import Config
 except Exception:
+
     class Config:
         LLM_MODEL = "mistral"
         LLM_ENDPOINT = "http://localhost:11434/api/generate"
+
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,11 @@ class PredictiveAdvisor:
 
     def __init__(self, model: str | None = None, endpoint: str | None = None):
         self.model = model or getattr(Config, "LLM_MODEL", "mistral")
-        self.endpoint = endpoint or getattr(Config, "LLM_ENDPOINT", "") or "http://localhost:11434/api/generate"
+        self.endpoint = (
+            endpoint
+            or getattr(Config, "LLM_ENDPOINT", "")
+            or "http://localhost:11434/api/generate"
+        )
         self._session = requests.Session()
 
     def _call_llm(self, prompt: str, max_tokens: int = 500) -> Optional[str]:
@@ -53,7 +59,9 @@ class PredictiveAdvisor:
             logger.exception("LLM call error: %s", exc)
         return None
 
-    def suggest_test_scenarios(self, context: dict[str, Any], count: int = 8) -> list[str]:
+    def suggest_test_scenarios(
+        self, context: dict[str, Any], count: int = 8
+    ) -> list[str]:
         """Генерирует приоритизированные сценарии диагностических проверок."""
         prompt = (
             "You are an expert in defensive security diagnostics. "
@@ -75,7 +83,9 @@ class PredictiveAdvisor:
         answer = self._call_llm(prompt)
         return self._extract_json_string_list(answer)
 
-    def suggest_remediation_actions(self, findings: list[dict[str, Any]], count: int = 10) -> list[str]:
+    def suggest_remediation_actions(
+        self, findings: list[dict[str, Any]], count: int = 10
+    ) -> list[str]:
         """Формирует список remediation-шагов по найденным рискам."""
         prompt = (
             "You are a blue-team advisor. "
@@ -87,8 +97,11 @@ class PredictiveAdvisor:
         return self._extract_json_string_list(answer)
 
     def adapt_model(self, successful_examples: list[dict[str, Any]]) -> None:
-        """Заглушка адаптации: фиксируем few-shot примеры для последующего использования."""
-        logger.info("Collected %s successful defensive examples for future prompt adaptation", len(successful_examples))
+        """Заглушка адаптации для фиксации few-shot примеров."""
+        logger.info(
+            "Collected %s successful defensive examples for future prompt adaptation",
+            len(successful_examples),
+        )
 
     @staticmethod
     def _extract_json_string_list(answer: str | None) -> list[str]:
@@ -111,5 +124,7 @@ async def analyze_threat_context(raw_text: str, source: str) -> dict[str, Any]:
     advisor = PredictiveAdvisor()
     context = {"raw_text": raw_text, "source": source}
     scenarios = advisor.suggest_test_scenarios(context, count=5)
-    improvements = advisor.analyze_previous_results([{"source": source, "text": raw_text[:500]}])
+    improvements = advisor.analyze_previous_results(
+        [{"source": source, "text": raw_text[:500]}]
+    )
     return {"scenarios": scenarios, "improvements": improvements}

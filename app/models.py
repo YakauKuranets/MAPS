@@ -27,6 +27,7 @@ except Exception:  # pragma: no cover - fallback for environments without GeoAlc
         def get_col_spec(self, **kw):
             return "GEOMETRY"
 
+
 from sqlalchemy import func
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -76,7 +77,8 @@ def decrypt_terminal_auth_credentials(token: str) -> Dict[str, Any]:
 
 def _is_postgres_bound() -> bool:
     bind = db.session.get_bind() if db.session else None
-    return bool(bind is not None and bind.dialect.name == 'postgresql')
+    return bool(bind is not None and bind.dialect.name == "postgresql")
+
 
 # ---------------------------------------------------------------------------
 # Администраторы и роли
@@ -84,9 +86,11 @@ def _is_postgres_bound() -> bool:
 
 
 admin_zones = db.Table(
-    'admin_zones',
-    db.Column('admin_id', db.Integer, db.ForeignKey('admin_users.id'), primary_key=True),
-    db.Column('zone_id', db.Integer, db.ForeignKey('zone.id'), primary_key=True),
+    "admin_zones",
+    db.Column(
+        "admin_id", db.Integer, db.ForeignKey("admin_users.id"), primary_key=True
+    ),
+    db.Column("zone_id", db.Integer, db.ForeignKey("zone.id"), primary_key=True),
 )
 
 
@@ -98,29 +102,31 @@ class AdminUser(db.Model):
     конфигурации бота/сайта.
     """
 
-    __tablename__ = 'admin_users'
-    __table_args__ = (
-        db.Index('ix_admin_users_username', 'username'),
-    )
+    __tablename__ = "admin_users"
+    __table_args__ = (db.Index("ix_admin_users_username", "username"),)
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(32), nullable=False, default='editor')  # viewer|editor|superadmin
+    role = db.Column(
+        db.String(32), nullable=False, default="editor"
+    )  # viewer|editor|superadmin
     is_active = db.Column(db.Boolean, nullable=False, default=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
 
     # Связь с зонами, к которым админ имеет доступ
-    zones = db.relationship('Zone', secondary=admin_zones, backref='admins')
+    zones = db.relationship("Zone", secondary=admin_zones, backref="admins")
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'username': self.username,
-            'role': self.role,
-            'is_active': self.is_active,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'zones': [z.id for z in self.zones],
+            "id": self.id,
+            "username": self.username,
+            "role": self.role,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "zones": [z.id for z in self.zones],
         }
 
 
@@ -134,29 +140,33 @@ class Address(db.Model):
     отслеживать изменения.
     """
 
-    __tablename__ = 'addresses'
+    __tablename__ = "addresses"
     __table_args__ = (
         # Индекс по категории и статусу для быстрых фильтров на карте
-        db.Index('ix_addresses_category_status', 'category', 'status'),
+        db.Index("ix_addresses_category_status", "category", "status"),
         # Индекс по дате создания для сортировки и аналитики
-        db.Index('ix_addresses_created_at', 'created_at'),
+        db.Index("ix_addresses_created_at", "created_at"),
     )
     id: int = db.Column(db.Integer, primary_key=True)
-    name: str = db.Column(db.String(255), nullable=False, default='')
-    _lat: float = db.Column('lat', db.Float, nullable=True)
-    _lon: float = db.Column('lon', db.Float, nullable=True)
-    geom = db.Column(Geometry(geometry_type='POINT', srid=4326), nullable=True)
+    name: str = db.Column(db.String(255), nullable=False, default="")
+    _lat: float = db.Column("lat", db.Float, nullable=True)
+    _lon: float = db.Column("lon", db.Float, nullable=True)
+    geom = db.Column(Geometry(geometry_type="POINT", srid=4326), nullable=True)
     notes: str = db.Column(db.Text, nullable=True)
     status: str = db.Column(db.String(64), nullable=True)
     link: str = db.Column(db.String(512), nullable=True)
     category: str = db.Column(db.String(128), nullable=True)
-    zone_id = db.Column(db.Integer, db.ForeignKey('zone.id'), nullable=True)
-    zone = db.relationship('Zone', lazy='selectin')
+    zone_id = db.Column(db.Integer, db.ForeignKey("zone.id"), nullable=True)
+    zone = db.relationship("Zone", lazy="selectin")
     photo: str = db.Column(db.String(128), nullable=True)
-    ai_tags = db.Column(db.JSON().with_variant(JSONB, 'postgresql'), nullable=True)
+    ai_tags = db.Column(db.JSON().with_variant(JSONB, "postgresql"), nullable=True)
     priority = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     @hybrid_property
     def lat(self) -> Optional[float]:
@@ -189,20 +199,20 @@ class Address(db.Model):
     def to_dict(self) -> Dict[str, Any]:
         """Преобразовать запись в словарь для JSON‑выдачи."""
         return {
-            'id': self.id,
-            'name': self.name,
-            'lat': self.lat,
-            'lon': self.lon,
-            'notes': self.notes,
-            'status': self.status,
-            'link': self.link,
-            'category': self.category,
-            'zone_id': self.zone_id,
-            'photo': self.photo,
-            'ai_tags': self.ai_tags or [],
-            'priority': self.priority,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            "id": self.id,
+            "name": self.name,
+            "lat": self.lat,
+            "lon": self.lon,
+            "notes": self.notes,
+            "status": self.status,
+            "link": self.link,
+            "category": self.category,
+            "zone_id": self.zone_id,
+            "photo": self.photo,
+            "ai_tags": self.ai_tags or [],
+            "priority": self.priority,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -215,25 +225,25 @@ class PendingMarker(db.Model):
     отдельно, что позволяет фильтровать и управлять ими.
     """
 
-    __tablename__ = 'pending_markers'
+    __tablename__ = "pending_markers"
     __table_args__ = (
-        db.Index('ix_pending_markers_status', 'status'),
-        db.Index('ix_pending_markers_created_at', 'created_at'),
-        db.Index('ix_pending_markers_user_id', 'user_id'),
+        db.Index("ix_pending_markers_status", "status"),
+        db.Index("ix_pending_markers_created_at", "created_at"),
+        db.Index("ix_pending_markers_user_id", "user_id"),
     )
     id: int = db.Column(db.Integer, primary_key=True)
-    name: str = db.Column(db.String(255), nullable=False, default='')
-    _lat: float = db.Column('lat', db.Float, nullable=True)
-    _lon: float = db.Column('lon', db.Float, nullable=True)
-    geom = db.Column(Geometry(geometry_type='POINT', srid=4326), nullable=True)
+    name: str = db.Column(db.String(255), nullable=False, default="")
+    _lat: float = db.Column("lat", db.Float, nullable=True)
+    _lon: float = db.Column("lon", db.Float, nullable=True)
+    geom = db.Column(Geometry(geometry_type="POINT", srid=4326), nullable=True)
     notes: str = db.Column(db.Text, nullable=True)
     status: str = db.Column(db.String(64), nullable=True)
     link: str = db.Column(db.String(512), nullable=True)
     category: str = db.Column(db.String(128), nullable=True)
-    zone_id = db.Column(db.Integer, db.ForeignKey('zone.id'), nullable=True)
-    zone = db.relationship('Zone', lazy='selectin')
+    zone_id = db.Column(db.Integer, db.ForeignKey("zone.id"), nullable=True)
+    zone = db.relationship("Zone", lazy="selectin")
     photo: str = db.Column(db.String(128), nullable=True)
-    ai_tags = db.Column(db.JSON().with_variant(JSONB, 'postgresql'), nullable=True)
+    ai_tags = db.Column(db.JSON().with_variant(JSONB, "postgresql"), nullable=True)
     priority = db.Column(db.Integer, nullable=True)
     # идентификатор пользователя бота или сообщения для трассировки
     user_id: str = db.Column(db.String(64), nullable=True)
@@ -243,7 +253,11 @@ class PendingMarker(db.Model):
     reporter: str = db.Column(db.String(128), nullable=True)
     """Имя или контакт отправителя (может совпадать с user_id или быть строкой)."""
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     @hybrid_property
     def lat(self) -> Optional[float]:
@@ -275,23 +289,23 @@ class PendingMarker(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'name': self.name,
-            'lat': self.lat,
-            'lon': self.lon,
-            'notes': self.notes,
-            'status': self.status,
-            'link': self.link,
-            'category': self.category,
-            'zone_id': self.zone_id,
-            'photo': self.photo,
-            'ai_tags': self.ai_tags or [],
-            'priority': self.priority,
-            'user_id': self.user_id,
-            'message_id': self.message_id,
-            'reporter': self.reporter,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            "id": self.id,
+            "name": self.name,
+            "lat": self.lat,
+            "lon": self.lon,
+            "notes": self.notes,
+            "status": self.status,
+            "link": self.link,
+            "category": self.category,
+            "zone_id": self.zone_id,
+            "photo": self.photo,
+            "ai_tags": self.ai_tags or [],
+            "priority": self.priority,
+            "user_id": self.user_id,
+            "message_id": self.message_id,
+            "reporter": self.reporter,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -304,10 +318,10 @@ class PendingHistory(db.Model):
     заявка.
     """
 
-    __tablename__ = 'pending_history'
+    __tablename__ = "pending_history"
     __table_args__ = (
-        db.Index('ix_pending_history_pending_id', 'pending_id'),
-        db.Index('ix_pending_history_timestamp', 'timestamp'),
+        db.Index("ix_pending_history_pending_id", "pending_id"),
+        db.Index("ix_pending_history_timestamp", "timestamp"),
     )
     id: int = db.Column(db.Integer, primary_key=True)
     pending_id: int = db.Column(db.Integer, nullable=False)
@@ -317,11 +331,11 @@ class PendingHistory(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'pending_id': self.pending_id,
-            'status': self.status,
-            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
-            'address_id': self.address_id,
+            "id": self.id,
+            "pending_id": self.pending_id,
+            "status": self.status,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "address_id": self.address_id,
         }
 
 
@@ -336,24 +350,28 @@ class Terminal(db.Model):
     Поле ``auth_credentials`` хранится в БД в зашифрованном виде (Fernet).
     """
 
-    __tablename__ = 'terminals'
+    __tablename__ = "terminals"
     __table_args__ = (
-        db.Index('ix_terminals_ip', 'ip'),
-        db.Index('ix_terminals_type', 'terminal_type'),
+        db.Index("ix_terminals_ip", "ip"),
+        db.Index("ix_terminals_type", "terminal_type"),
     )
 
     id: int = db.Column(db.Integer, primary_key=True)
-    name: str = db.Column(db.String(255), nullable=False, default='')
+    name: str = db.Column(db.String(255), nullable=False, default="")
     ip: str = db.Column(db.String(128), nullable=True)
     terminal_type: str = db.Column(db.String(64), nullable=True)
     archive_root_path: str = db.Column(db.String(512), nullable=True)
-    _auth_credentials: str = db.Column('auth_credentials', db.Text, nullable=True)
+    _auth_credentials: str = db.Column("auth_credentials", db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     @property
     def auth_credentials(self) -> Dict[str, Any]:
-        return decrypt_terminal_auth_credentials(self._auth_credentials or '')
+        return decrypt_terminal_auth_credentials(self._auth_credentials or "")
 
     @auth_credentials.setter
     def auth_credentials(self, value: Any) -> None:
@@ -377,17 +395,18 @@ class Terminal(db.Model):
 
     def to_dict(self, *, include_auth_credentials: bool = False) -> Dict[str, Any]:
         payload = {
-            'id': self.id,
-            'name': self.name,
-            'ip': self.ip,
-            'terminal_type': self.terminal_type,
-            'archive_root_path': self.archive_root_path,
-            'has_auth_credentials': bool(self._auth_credentials),
+            "id": self.id,
+            "name": self.name,
+            "ip": self.ip,
+            "terminal_type": self.terminal_type,
+            "archive_root_path": self.archive_root_path,
+            "has_auth_credentials": bool(self._auth_credentials),
         }
         # Security by default: never expose secrets in normal serialization.
         if include_auth_credentials:
-            payload['auth_credentials'] = self.auth_credentials
+            payload["auth_credentials"] = self.auth_credentials
         return payload
+
 
 class Object(db.Model):
     """Произвольный объект/адрес с описанием и набором камер.
@@ -399,34 +418,36 @@ class Object(db.Model):
     камеры хранятся в таблице :class:`ObjectCamera`.
     """
 
-    __tablename__ = 'objects'
-    __table_args__ = (
-        db.Index('ix_objects_created_at', 'created_at'),
-    )
+    __tablename__ = "objects"
+    __table_args__ = (db.Index("ix_objects_created_at", "created_at"),)
     id: int = db.Column(db.Integer, primary_key=True)
-    name: str = db.Column(db.String(255), nullable=False, default='')
+    name: str = db.Column(db.String(255), nullable=False, default="")
     lat: float = db.Column(db.Float, nullable=True)
     lon: float = db.Column(db.Float, nullable=True)
     description: str = db.Column(db.Text, nullable=True)
     tags: str = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     cameras = db.relationship(
-        'ObjectCamera', backref='object', lazy='selectin', cascade='all, delete-orphan'
+        "ObjectCamera", backref="object", lazy="selectin", cascade="all, delete-orphan"
     )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'name': self.name,
-            'lat': self.lat,
-            'lon': self.lon,
-            'description': self.description,
-            'tags': self.tags,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'cameras': [cam.to_dict() for cam in self.cameras],
+            "id": self.id,
+            "name": self.name,
+            "lat": self.lat,
+            "lon": self.lon,
+            "description": self.description,
+            "tags": self.tags,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "cameras": [cam.to_dict() for cam in self.cameras],
         }
 
 
@@ -438,28 +459,28 @@ class ObjectCamera(db.Model):
     человекочитаемое название камеры, например «Вход 1».
     """
 
-    __tablename__ = 'object_cameras'
-    __table_args__ = (
-        db.Index('ix_object_cameras_object_id', 'object_id'),
-    )
+    __tablename__ = "object_cameras"
+    __table_args__ = (db.Index("ix_object_cameras_object_id", "object_id"),)
     id: int = db.Column(db.Integer, primary_key=True)
-    object_id: int = db.Column(db.Integer, db.ForeignKey('objects.id'), nullable=False)
+    object_id: int = db.Column(db.Integer, db.ForeignKey("objects.id"), nullable=False)
     label: str = db.Column(db.String(255), nullable=True)
     url: str = db.Column(db.String(512), nullable=False)
     type: str = db.Column(db.String(32), nullable=True)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'object_id': self.object_id,
-            'label': self.label,
-            'url': self.url,
-            'type': self.type,
+            "id": self.id,
+            "object_id": self.object_id,
+            "label": self.label,
+            "url": self.url,
+            "type": self.type,
         }
+
 
 # ---------------------------------------------------------------------------
 # Incidents and related tables (B2 feature)
 # ---------------------------------------------------------------------------
+
 
 class Incident(db.Model):
     """Оперативный инцидент на карте.
@@ -475,43 +496,59 @@ class Incident(db.Model):
     события и назначения нарядов.
     """
 
-    __tablename__ = 'incidents'
+    __tablename__ = "incidents"
     __table_args__ = (
-        db.Index('ix_incidents_created_at', 'created_at'),
-        db.Index('ix_incidents_status', 'status'),
-        db.Index('ix_incidents_priority', 'priority'),
+        db.Index("ix_incidents_created_at", "created_at"),
+        db.Index("ix_incidents_status", "status"),
+        db.Index("ix_incidents_priority", "priority"),
     )
     id: int = db.Column(db.Integer, primary_key=True)
-    object_id: int = db.Column(db.Integer, db.ForeignKey('objects.id'), nullable=True, index=True)
+    object_id: int = db.Column(
+        db.Integer, db.ForeignKey("objects.id"), nullable=True, index=True
+    )
     lat: float = db.Column(db.Float, nullable=True)
     lon: float = db.Column(db.Float, nullable=True)
     address: str = db.Column(db.String(255), nullable=True)
     description: str = db.Column(db.Text, nullable=True)
     priority: int = db.Column(db.Integer, nullable=True)
-    status: str = db.Column(db.String(32), nullable=False, default='new')
+    status: str = db.Column(db.String(32), nullable=False, default="new")
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     # Отношения
-    object = db.relationship('Object', lazy='selectin')
-    events = db.relationship('IncidentEvent', backref='incident', lazy='selectin', cascade='all, delete-orphan')
-    assignments = db.relationship('IncidentAssignment', backref='incident', lazy='selectin', cascade='all, delete-orphan')
+    object = db.relationship("Object", lazy="selectin")
+    events = db.relationship(
+        "IncidentEvent",
+        backref="incident",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
+    assignments = db.relationship(
+        "IncidentAssignment",
+        backref="incident",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'object_id': self.object_id,
-            'lat': self.lat,
-            'lon': self.lon,
-            'address': self.address,
-            'description': self.description,
-            'priority': self.priority,
-            'status': self.status,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'object': self.object.to_dict() if self.object else None,
-            'assignments': [a.to_dict() for a in self.assignments],
-            'events': [e.to_dict() for e in self.events],
+            "id": self.id,
+            "object_id": self.object_id,
+            "lat": self.lat,
+            "lon": self.lon,
+            "address": self.address,
+            "description": self.description,
+            "priority": self.priority,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "object": self.object.to_dict() if self.object else None,
+            "assignments": [a.to_dict() for a in self.assignments],
+            "events": [e.to_dict() for e in self.events],
         }
 
 
@@ -523,15 +560,20 @@ class IncidentEvent(db.Model):
     инцидента, назначении наряда, смене статуса и других действиях.
     """
 
-    __tablename__ = 'incident_events'
+    __tablename__ = "incident_events"
     __table_args__ = (
-        db.Index('ix_incident_events_incident', 'incident_id'),
-        db.Index('ix_incident_events_ts', 'ts'),
+        db.Index("ix_incident_events_incident", "incident_id"),
+        db.Index("ix_incident_events_ts", "ts"),
     )
     id: int = db.Column(db.Integer, primary_key=True)
-    incident_id: int = db.Column(db.Integer, db.ForeignKey('incidents.id'), nullable=False, index=True)
+    incident_id: int = db.Column(
+        db.Integer, db.ForeignKey("incidents.id"), nullable=False, index=True
+    )
     event_type: str = db.Column(db.String(64), nullable=False)
-    payload = db.Column(MutableDict.as_mutable(db.JSON().with_variant(JSONB, 'postgresql')), nullable=True)
+    payload = db.Column(
+        MutableDict.as_mutable(db.JSON().with_variant(JSONB, "postgresql")),
+        nullable=True,
+    )
     ts = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     @property
@@ -556,11 +598,11 @@ class IncidentEvent(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'incident_id': self.incident_id,
-            'event_type': self.event_type,
-            'payload': self.payload or {},
-            'ts': self.ts.isoformat() if self.ts else None,
+            "id": self.id,
+            "incident_id": self.incident_id,
+            "event_type": self.event_type,
+            "payload": self.payload or {},
+            "ts": self.ts.isoformat() if self.ts else None,
         }
 
 
@@ -572,14 +614,18 @@ class IncidentAssignment(db.Model):
     позволяет строить отчёты о времени реакции и соблюдать SLA.
     """
 
-    __tablename__ = 'incident_assignments'
+    __tablename__ = "incident_assignments"
     __table_args__ = (
-        db.Index('ix_incident_assignments_incident', 'incident_id'),
-        db.Index('ix_incident_assignments_shift', 'shift_id'),
+        db.Index("ix_incident_assignments_incident", "incident_id"),
+        db.Index("ix_incident_assignments_shift", "shift_id"),
     )
     id: int = db.Column(db.Integer, primary_key=True)
-    incident_id: int = db.Column(db.Integer, db.ForeignKey('incidents.id'), nullable=False, index=True)
-    shift_id: int = db.Column(db.Integer, db.ForeignKey('duty_shifts.id'), nullable=False, index=True)
+    incident_id: int = db.Column(
+        db.Integer, db.ForeignKey("incidents.id"), nullable=False, index=True
+    )
+    shift_id: int = db.Column(
+        db.Integer, db.ForeignKey("duty_shifts.id"), nullable=False, index=True
+    )
 
     assigned_at = db.Column(db.DateTime, nullable=True)
     accepted_at = db.Column(db.DateTime, nullable=True)
@@ -588,20 +634,21 @@ class IncidentAssignment(db.Model):
     resolved_at = db.Column(db.DateTime, nullable=True)
     closed_at = db.Column(db.DateTime, nullable=True)
 
-    shift = db.relationship('DutyShift', lazy='selectin')
+    shift = db.relationship("DutyShift", lazy="selectin")
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'incident_id': self.incident_id,
-            'shift_id': self.shift_id,
-            'assigned_at': self.assigned_at.isoformat() if self.assigned_at else None,
-            'accepted_at': self.accepted_at.isoformat() if self.accepted_at else None,
-            'enroute_at': self.enroute_at.isoformat() if self.enroute_at else None,
-            'on_scene_at': self.on_scene_at.isoformat() if self.on_scene_at else None,
-            'resolved_at': self.resolved_at.isoformat() if self.resolved_at else None,
-            'closed_at': self.closed_at.isoformat() if self.closed_at else None,
+            "id": self.id,
+            "incident_id": self.incident_id,
+            "shift_id": self.shift_id,
+            "assigned_at": self.assigned_at.isoformat() if self.assigned_at else None,
+            "accepted_at": self.accepted_at.isoformat() if self.accepted_at else None,
+            "enroute_at": self.enroute_at.isoformat() if self.enroute_at else None,
+            "on_scene_at": self.on_scene_at.isoformat() if self.on_scene_at else None,
+            "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
+            "closed_at": self.closed_at.isoformat() if self.closed_at else None,
         }
+
 
 class Zone(db.Model):
     """Модель зоны. Содержит описание, цвет, иконку и геометрию."""
@@ -636,6 +683,7 @@ class Zone(db.Model):
 # ChatMessage
 # ---------------------------------------------------------------------------
 
+
 class ChatDialog(db.Model):
     """Диалог чата с пользователем.
 
@@ -644,20 +692,22 @@ class ChatDialog(db.Model):
     Telegram `user_id`.
     """
 
-    __tablename__ = 'chat_dialogs'
+    __tablename__ = "chat_dialogs"
     __table_args__ = (
-        db.Index('ix_chat_dialogs_status_last', 'status', 'last_message_at'),
+        db.Index("ix_chat_dialogs_status_last", "status", "last_message_at"),
     )
 
     user_id: str = db.Column(db.String(64), primary_key=True)
     # Статус диалога: 'new' | 'in_progress' | 'closed'
-    status: str = db.Column(db.String(16), nullable=False, default='new')
+    status: str = db.Column(db.String(16), nullable=False, default="new")
     # Непрочитанные сообщения для администратора (от пользователя)
     unread_for_admin: int = db.Column(db.Integer, nullable=False, default=0)
     # Непрочитанные сообщения для пользователя (от админа)
     unread_for_user: int = db.Column(db.Integer, nullable=False, default=0)
     # Время последнего сообщения в диалоге
-    last_message_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    last_message_at = db.Column(
+        db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
 
     # --- Telegram-профиль пользователя (для отображения ников в админ-чате) ---
     # username без @ (как приходит из Telegram), может быть None
@@ -677,17 +727,21 @@ class ChatDialog(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'user_id': self.user_id,
-            'status': self.status,
-            'unread_for_admin': self.unread_for_admin,
-            'unread_for_user': self.unread_for_user,
-            'last_message_at': self.last_message_at.isoformat() if self.last_message_at else None,
-            'tg_username': self.tg_username,
-            'tg_first_name': self.tg_first_name,
-            'tg_last_name': self.tg_last_name,
-            'display_name': self.display_name,
-            'last_notified_admin_msg_id': int(self.last_notified_admin_msg_id or 0),
-            'last_seen_admin_msg_id': int(getattr(self, 'last_seen_admin_msg_id', 0) or 0),
+            "user_id": self.user_id,
+            "status": self.status,
+            "unread_for_admin": self.unread_for_admin,
+            "unread_for_user": self.unread_for_user,
+            "last_message_at": self.last_message_at.isoformat()
+            if self.last_message_at
+            else None,
+            "tg_username": self.tg_username,
+            "tg_first_name": self.tg_first_name,
+            "tg_last_name": self.tg_last_name,
+            "display_name": self.display_name,
+            "last_notified_admin_msg_id": int(self.last_notified_admin_msg_id or 0),
+            "last_seen_admin_msg_id": int(
+                getattr(self, "last_seen_admin_msg_id", 0) or 0
+            ),
         }
 
 
@@ -699,9 +753,9 @@ class ChatMessage(db.Model):
     text содержит текстовое содержимое. created_at — временная метка создания.
     """
 
-    __tablename__ = 'chat_messages'
+    __tablename__ = "chat_messages"
     __table_args__ = (
-        db.Index('ix_chat_messages_user_created', 'user_id', 'created_at'),
+        db.Index("ix_chat_messages_user_created", "user_id", "created_at"),
     )
     id: int = db.Column(db.Integer, primary_key=True)
     user_id: str = db.Column(db.String(64), nullable=False)
@@ -714,28 +768,32 @@ class ChatMessage(db.Model):
     def to_dict(self) -> Dict[str, Any]:
         """Преобразовать сообщение в словарь."""
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'sender': self.sender,
-            'text': self.text,
-            'is_read': self.is_read,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            "id": self.id,
+            "user_id": self.user_id,
+            "sender": self.sender,
+            "text": self.text,
+            "is_read": self.is_read,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
 
 # ---------------------------------------------------------------------------
 # DUTY / GEO-TRACKING (Наряды)
 # ---------------------------------------------------------------------------
 
+
 class DutyShift(db.Model):
     """Смена (несение службы) для наряда/пользователя Telegram."""
 
-    __tablename__ = 'duty_shifts'
+    __tablename__ = "duty_shifts"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(32), index=True, nullable=False)   # Telegram user id
-    unit_label = db.Column(db.String(64), nullable=True)             # номер наряда / позывной
+    user_id = db.Column(db.String(32), index=True, nullable=False)  # Telegram user id
+    unit_label = db.Column(db.String(64), nullable=True)  # номер наряда / позывной
 
-    started_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    started_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
     ended_at = db.Column(db.DateTime, nullable=True, index=True)
 
     start_lat = db.Column(db.Float, nullable=True)
@@ -745,29 +803,34 @@ class DutyShift(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'unit_label': self.unit_label,
-            'started_at': self.started_at.isoformat() if self.started_at else None,
-            'ended_at': self.ended_at.isoformat() if self.ended_at else None,
-            'start': {'lat': self.start_lat, 'lon': self.start_lon},
-            'end': {'lat': self.end_lat, 'lon': self.end_lon},
+            "id": self.id,
+            "user_id": self.user_id,
+            "unit_label": self.unit_label,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "ended_at": self.ended_at.isoformat() if self.ended_at else None,
+            "start": {"lat": self.start_lat, "lon": self.start_lon},
+            "end": {"lat": self.end_lat, "lon": self.end_lon},
         }
 
 
 class DutyEvent(db.Model):
     """Журнал событий смены."""
 
-    __tablename__ = 'duty_events'
+    __tablename__ = "duty_events"
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(32), index=True, nullable=False)
-    shift_id = db.Column(db.Integer, db.ForeignKey('duty_shifts.id'), nullable=True, index=True)
+    shift_id = db.Column(
+        db.Integer, db.ForeignKey("duty_shifts.id"), nullable=True, index=True
+    )
 
     ts = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     event_type = db.Column(db.String(64), index=True, nullable=False)
-    actor = db.Column(db.String(16), default='system')  # user/admin/system
-    payload = db.Column(MutableDict.as_mutable(db.JSON().with_variant(JSONB, 'postgresql')), nullable=True)
+    actor = db.Column(db.String(16), default="system")  # user/admin/system
+    payload = db.Column(
+        MutableDict.as_mutable(db.JSON().with_variant(JSONB, "postgresql")),
+        nullable=True,
+    )
 
     @property
     def payload_json(self) -> Optional[str]:
@@ -791,27 +854,33 @@ class DutyEvent(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'shift_id': self.shift_id,
-            'ts': self.ts.isoformat() if self.ts else None,
-            'event_type': self.event_type,
-            'actor': self.actor,
-            'payload': self.payload or {},
+            "id": self.id,
+            "user_id": self.user_id,
+            "shift_id": self.shift_id,
+            "ts": self.ts.isoformat() if self.ts else None,
+            "event_type": self.event_type,
+            "actor": self.actor,
+            "payload": self.payload or {},
         }
 
 
 class TrackingSession(db.Model):
     """Сессия live-трекинга (Telegram live location)."""
 
-    __tablename__ = 'tracking_sessions'
+    __tablename__ = "tracking_sessions"
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(32), index=True, nullable=False)
-    shift_id = db.Column(db.Integer, db.ForeignKey('duty_shifts.id'), nullable=True, index=True)
+    shift_id = db.Column(
+        db.Integer, db.ForeignKey("duty_shifts.id"), nullable=True, index=True
+    )
 
-    message_id = db.Column(db.Integer, nullable=True, index=True)  # Telegram message id live-location
-    started_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    message_id = db.Column(
+        db.Integer, nullable=True, index=True
+    )  # Telegram message id live-location
+    started_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
     ended_at = db.Column(db.DateTime, nullable=True, index=True)
     is_active = db.Column(db.Boolean, default=True)
 
@@ -824,65 +893,75 @@ class TrackingSession(db.Model):
 
     def summary(self) -> Dict[str, Any]:
         try:
-            return json.loads(self.summary_json or '{}') if self.summary_json else {}
+            return json.loads(self.summary_json or "{}") if self.summary_json else {}
         except Exception:
             return {}
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'shift_id': self.shift_id,
-            'message_id': self.message_id,
-            'started_at': self.started_at.isoformat() if self.started_at else None,
-            'ended_at': self.ended_at.isoformat() if self.ended_at else None,
-            'is_active': bool(self.is_active),
-            'last': {'lat': self.last_lat, 'lon': self.last_lon, 'ts': self.last_at.isoformat() if self.last_at else None},
-            'snapshot_path': self.snapshot_path,
-            'summary': self.summary(),
+            "id": self.id,
+            "user_id": self.user_id,
+            "shift_id": self.shift_id,
+            "message_id": self.message_id,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "ended_at": self.ended_at.isoformat() if self.ended_at else None,
+            "is_active": bool(self.is_active),
+            "last": {
+                "lat": self.last_lat,
+                "lon": self.last_lon,
+                "ts": self.last_at.isoformat() if self.last_at else None,
+            },
+            "snapshot_path": self.snapshot_path,
+            "summary": self.summary(),
         }
 
 
 class TrackingPoint(db.Model):
     """Точка трека (live или одноразовая отбивка)."""
 
-    __tablename__ = 'tracking_points'
+    __tablename__ = "tracking_points"
 
     __table_args__ = (
-        UniqueConstraint('session_id', 'ts', 'kind', name='uq_tracking_points_session_ts_kind'),
+        UniqueConstraint(
+            "session_id", "ts", "kind", name="uq_tracking_points_session_ts_kind"
+        ),
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    session_id = db.Column(db.Integer, db.ForeignKey('tracking_sessions.id'), nullable=True, index=True)
+    session_id = db.Column(
+        db.Integer, db.ForeignKey("tracking_sessions.id"), nullable=True, index=True
+    )
     user_id = db.Column(db.String(32), index=True, nullable=False)
 
     ts = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     lat = db.Column(db.Float, nullable=True)
     lon = db.Column(db.Float, nullable=True)
     accuracy_m = db.Column(db.Float, nullable=True)
-    kind = db.Column(db.String(16), default='live')  # live/checkin/location
+    kind = db.Column(db.String(16), default="live")  # live/checkin/location
     raw_json = db.Column(db.Text, nullable=True)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'session_id': self.session_id,
-            'user_id': self.user_id,
-            'ts': self.ts.isoformat() if self.ts else None,
-            'lat': self.lat,
-            'lon': self.lon,
-            'accuracy_m': self.accuracy_m,
-            'kind': self.kind,
+            "id": self.id,
+            "session_id": self.session_id,
+            "user_id": self.user_id,
+            "ts": self.ts.isoformat() if self.ts else None,
+            "lat": self.lat,
+            "lon": self.lon,
+            "accuracy_m": self.accuracy_m,
+            "kind": self.kind,
         }
 
 
 class TrackingStop(db.Model):
     """Стоянка (когда наряд находился в радиусе R)."""
 
-    __tablename__ = 'tracking_stops'
+    __tablename__ = "tracking_stops"
 
     id = db.Column(db.Integer, primary_key=True)
-    session_id = db.Column(db.Integer, db.ForeignKey('tracking_sessions.id'), nullable=False, index=True)
+    session_id = db.Column(
+        db.Integer, db.ForeignKey("tracking_sessions.id"), nullable=False, index=True
+    )
 
     start_ts = db.Column(db.DateTime, nullable=True, index=True)
     end_ts = db.Column(db.DateTime, nullable=True, index=True)
@@ -894,31 +973,37 @@ class TrackingStop(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'session_id': self.session_id,
-            'start_ts': self.start_ts.isoformat() if self.start_ts else None,
-            'end_ts': self.end_ts.isoformat() if self.end_ts else None,
-            'center_lat': self.center_lat,
-            'center_lon': self.center_lon,
-            'duration_sec': self.duration_sec,
-            'radius_m': self.radius_m,
-            'points_count': self.points_count,
+            "id": self.id,
+            "session_id": self.session_id,
+            "start_ts": self.start_ts.isoformat() if self.start_ts else None,
+            "end_ts": self.end_ts.isoformat() if self.end_ts else None,
+            "center_lat": self.center_lat,
+            "center_lon": self.center_lon,
+            "duration_sec": self.duration_sec,
+            "radius_m": self.radius_m,
+            "points_count": self.points_count,
         }
 
 
 class BreakRequest(db.Model):
     """Запрос на обед/перерыв."""
 
-    __tablename__ = 'break_requests'
+    __tablename__ = "break_requests"
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(32), index=True, nullable=False)
-    shift_id = db.Column(db.Integer, db.ForeignKey('duty_shifts.id'), nullable=True, index=True)
+    shift_id = db.Column(
+        db.Integer, db.ForeignKey("duty_shifts.id"), nullable=True, index=True
+    )
 
-    requested_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    requested_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
     duration_min = db.Column(db.Integer, default=30)
 
-    status = db.Column(db.String(16), default='requested', index=True)  # requested/started/ended/rejected
+    status = db.Column(
+        db.String(16), default="requested", index=True
+    )  # requested/started/ended/rejected
     approved_by = db.Column(db.String(64), nullable=True)
 
     started_at = db.Column(db.DateTime, nullable=True)
@@ -929,18 +1014,19 @@ class BreakRequest(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'shift_id': self.shift_id,
-            'requested_at': self.requested_at.isoformat() if self.requested_at else None,
-            'duration_min': self.duration_min,
-            'status': self.status,
-            'started_at': self.started_at.isoformat() if self.started_at else None,
-            'ends_at': self.ends_at.isoformat() if self.ends_at else None,
-            'ended_at': self.ended_at.isoformat() if self.ended_at else None,
-            'due_notified': bool(self.due_notified),
+            "id": self.id,
+            "user_id": self.user_id,
+            "shift_id": self.shift_id,
+            "requested_at": self.requested_at.isoformat()
+            if self.requested_at
+            else None,
+            "duration_min": self.duration_min,
+            "status": self.status,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "ends_at": self.ends_at.isoformat() if self.ends_at else None,
+            "ended_at": self.ended_at.isoformat() if self.ended_at else None,
+            "due_notified": bool(self.due_notified),
         }
-
 
 
 class SosAlert(db.Model):
@@ -950,21 +1036,27 @@ class SosAlert(db.Model):
     и может подтвердить (ACK) или закрыть.
     """
 
-    __tablename__ = 'sos_alerts'
+    __tablename__ = "sos_alerts"
     __table_args__ = (
-        db.Index('ix_sos_alerts_user_status', 'user_id', 'status'),
-        db.Index('ix_sos_alerts_created_at', 'created_at'),
+        db.Index("ix_sos_alerts_user_status", "user_id", "status"),
+        db.Index("ix_sos_alerts_created_at", "created_at"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(32), index=True, nullable=False)
-    shift_id = db.Column(db.Integer, db.ForeignKey('duty_shifts.id'), nullable=True, index=True)
-    session_id = db.Column(db.Integer, db.ForeignKey('tracking_sessions.id'), nullable=True, index=True)
+    shift_id = db.Column(
+        db.Integer, db.ForeignKey("duty_shifts.id"), nullable=True, index=True
+    )
+    session_id = db.Column(
+        db.Integer, db.ForeignKey("tracking_sessions.id"), nullable=True, index=True
+    )
 
     unit_label = db.Column(db.String(64), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
-    status = db.Column(db.String(16), default='open', index=True)  # open/acked/closed
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
+    status = db.Column(db.String(16), default="open", index=True)  # open/acked/closed
 
     lat = db.Column(db.Float, nullable=True)
     lon = db.Column(db.Float, nullable=True)
@@ -980,36 +1072,41 @@ class SosAlert(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'shift_id': self.shift_id,
-            'session_id': self.session_id,
-            'unit_label': self.unit_label,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'status': self.status,
-            'lat': self.lat,
-            'lon': self.lon,
-            'accuracy_m': self.accuracy_m,
-            'note': self.note,
-            'acked_at': self.acked_at.isoformat() if self.acked_at else None,
-            'acked_by': self.acked_by,
-            'closed_at': self.closed_at.isoformat() if self.closed_at else None,
-            'closed_by': self.closed_by,
+            "id": self.id,
+            "user_id": self.user_id,
+            "shift_id": self.shift_id,
+            "session_id": self.session_id,
+            "unit_label": self.unit_label,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "status": self.status,
+            "lat": self.lat,
+            "lon": self.lon,
+            "accuracy_m": self.accuracy_m,
+            "note": self.note,
+            "acked_at": self.acked_at.isoformat() if self.acked_at else None,
+            "acked_by": self.acked_by,
+            "closed_at": self.closed_at.isoformat() if self.closed_at else None,
+            "closed_by": self.closed_by,
         }
 
 
 class DutyNotification(db.Model):
     """Уведомление для наряда, которое бот заберёт polling-ом."""
 
-    __tablename__ = 'duty_notifications'
+    __tablename__ = "duty_notifications"
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(32), index=True, nullable=False)
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
     kind = db.Column(db.String(32), index=True, nullable=False)
     text = db.Column(db.String(4096), nullable=False)
-    payload = db.Column(MutableDict.as_mutable(db.JSON().with_variant(JSONB, 'postgresql')), nullable=True)
+    payload = db.Column(
+        MutableDict.as_mutable(db.JSON().with_variant(JSONB, "postgresql")),
+        nullable=True,
+    )
 
     acked = db.Column(db.Boolean, default=False, index=True)
     acked_at = db.Column(db.DateTime, nullable=True)
@@ -1036,12 +1133,12 @@ class DutyNotification(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'kind': self.kind,
-            'text': self.text,
-            'payload': self.payload or {},
+            "id": self.id,
+            "user_id": self.user_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "kind": self.kind,
+            "text": self.text,
+            "payload": self.payload or {},
         }
 
 
@@ -1049,15 +1146,18 @@ class DutyNotification(db.Model):
 # Tracker devices (Android) — pairing codes + device tokens
 # ---------------------------------------------------------------------------
 
+
 class TrackerPairCode(db.Model):
     """Одноразовый код привязки устройства (храним только SHA256)."""
 
-    __tablename__ = 'tracker_pair_codes'
+    __tablename__ = "tracker_pair_codes"
 
     id = db.Column(db.Integer, primary_key=True)
     code_hash = db.Column(db.String(64), unique=True, index=True, nullable=False)
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
     expires_at = db.Column(db.DateTime, nullable=False, index=True)
     used_at = db.Column(db.DateTime, nullable=True, index=True)
 
@@ -1065,7 +1165,9 @@ class TrackerPairCode(db.Model):
     label = db.Column(db.String(128), nullable=True)
 
     def is_active(self) -> bool:
-        return (self.used_at is None) and (self.expires_at > datetime.now(timezone.utc).replace(tzinfo=None))
+        return (self.used_at is None) and (
+            self.expires_at > datetime.now(timezone.utc).replace(tzinfo=None)
+        )
 
 
 class TrackerBootstrapToken(db.Model):
@@ -1077,14 +1179,16 @@ class TrackerBootstrapToken(db.Model):
       3) Приложение по token забирает конфиг и автоматически делает pairing.
     """
 
-    __tablename__ = 'tracker_bootstrap_tokens'
+    __tablename__ = "tracker_bootstrap_tokens"
 
     id = db.Column(db.Integer, primary_key=True)
 
     token_hash = db.Column(db.String(64), unique=True, index=True, nullable=False)
     pair_code = db.Column(db.String(6), nullable=False)
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
     expires_at = db.Column(db.DateTime, nullable=False, index=True)
     used_at = db.Column(db.DateTime, nullable=True, index=True)
 
@@ -1118,19 +1222,20 @@ class TrackerBootstrapToken(db.Model):
 # ---------------------------------------------------------------------------
 
 
-
 class TrackerConnectRequest(db.Model):
     """Заявка на привязку Android DutyTracker.
 
     Сценарий:
-      1) Пользователь в Telegram (с ролью officer/admin) нажимает "Подключить DutyTracker".
+      1) Пользователь в Telegram (с ролью officer/admin)
+         нажимает "Подключить DutyTracker".
       2) Бот создаёт заявку со статусом pending.
       3) Админ на сайте подтверждает (approve) и сервер выпускает bootstrap-токен.
       4) Сервер (best-effort) отправляет пользователю кнопку deep-link в Telegram.
 
     Важно:
       - Токен одноразовый и хранится только в виде hash (в TrackerBootstrapToken).
-      - Если пользователь пропустил сообщение, бот может "довыдать" новый токен через status?issue=1.
+      - Если пользователь пропустил сообщение, бот может
+        "довыдать" новый токен через status?issue=1.
     """
 
     __tablename__ = "tracker_connect_requests"
@@ -1143,8 +1248,15 @@ class TrackerConnectRequest(db.Model):
     note = db.Column(db.String(256), nullable=True)
     base_url = db.Column(db.String(256), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), index=True)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
+    updated_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
 
     approved_at = db.Column(db.DateTime, nullable=True, index=True)
     denied_at = db.Column(db.DateTime, nullable=True, index=True)
@@ -1164,14 +1276,24 @@ class TrackerConnectRequest(db.Model):
             "status": self.status,
             "note": self.note,
             "base_url": self.base_url,
-            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() + "Z" if self.updated_at else None,
-            "approved_at": self.approved_at.isoformat() + "Z" if self.approved_at else None,
+            "created_at": self.created_at.isoformat() + "Z"
+            if self.created_at
+            else None,
+            "updated_at": self.updated_at.isoformat() + "Z"
+            if self.updated_at
+            else None,
+            "approved_at": self.approved_at.isoformat() + "Z"
+            if self.approved_at
+            else None,
             "denied_at": self.denied_at.isoformat() + "Z" if self.denied_at else None,
             "last_bootstrap_token_hash": self.last_bootstrap_token_hash,
             "last_pair_code": self.last_pair_code,
-            "last_issued_at": self.last_issued_at.isoformat() + "Z" if self.last_issued_at else None,
-            "last_sent_at": self.last_sent_at.isoformat() + "Z" if self.last_sent_at else None,
+            "last_issued_at": self.last_issued_at.isoformat() + "Z"
+            if self.last_issued_at
+            else None,
+            "last_sent_at": self.last_sent_at.isoformat() + "Z"
+            if self.last_sent_at
+            else None,
             "last_sent_via": self.last_sent_via,
             "last_send_error": self.last_send_error,
         }
@@ -1186,7 +1308,8 @@ class ServiceAccess(db.Model):
       - guest: нет доступа
       - pending: заявка подана, ожидает решения
       - officer: доступ выдан
-      - admin: служебный доступ по умолчанию (можно использовать для внутренних аккаунтов)
+      - admin: служебный доступ по умолчанию
+        (можно использовать для внутренних аккаунтов)
       - denied: заявка отклонена (по UI можно показывать отдельно от guest)
     """
 
@@ -1202,7 +1325,9 @@ class ServiceAccess(db.Model):
     decided_by = db.Column(db.String(128), nullable=True)
 
     note = db.Column(db.String(256), nullable=True)
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
 
     def normalize_status(self) -> str:
         st = (self.status or "").strip().lower()
@@ -1215,7 +1340,9 @@ class ServiceAccess(db.Model):
             "id": self.id,
             "tg_user_id": self.tg_user_id,
             "status": self.normalize_status(),
-            "requested_at": self.requested_at.isoformat() if self.requested_at else None,
+            "requested_at": self.requested_at.isoformat()
+            if self.requested_at
+            else None,
             "decided_at": self.decided_at.isoformat() if self.decided_at else None,
             "decided_by": self.decided_by,
             "note": self.note,
@@ -1226,14 +1353,16 @@ class ServiceAccess(db.Model):
 class TrackerDevice(db.Model):
     """Устройство (телефон), привязанное через pairing код."""
 
-    __tablename__ = 'tracker_devices'
+    __tablename__ = "tracker_devices"
 
     id = db.Column(db.Integer, primary_key=True)
 
     # короткий публичный id, который можно показывать в UI (до 32 символов)
     public_id = db.Column(db.String(32), unique=True, index=True, nullable=False)
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
     last_seen_at = db.Column(db.DateTime, nullable=True, index=True)
 
     # авторизация устройства: храним только SHA256 токена
@@ -1252,21 +1381,23 @@ class TrackerDevice(db.Model):
 
     def profile(self) -> Dict[str, Any]:
         try:
-            return json.loads(self.profile_json or '{}') or {}
+            return json.loads(self.profile_json or "{}") or {}
         except Exception:
             return {}
 
     def to_dict(self) -> Dict[str, Any]:
         """Сериализовать устройство в словарь для JSON-ответов."""
         return {
-            'id': self.id,
-            'public_id': self.public_id,
-            'user_id': self.user_id,
-            'label': self.label,
-            'is_revoked': bool(self.is_revoked),
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'last_seen_at': self.last_seen_at.isoformat() if self.last_seen_at else None,
-            'profile': self.profile(),
+            "id": self.id,
+            "public_id": self.public_id,
+            "user_id": self.user_id,
+            "label": self.label,
+            "is_revoked": bool(self.is_revoked),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "last_seen_at": self.last_seen_at.isoformat()
+            if self.last_seen_at
+            else None,
+            "profile": self.profile(),
         }
 
 
@@ -1278,12 +1409,14 @@ class TrackerDeviceHealth(db.Model):
     Храним только *последнее* состояние на устройство.
     """
 
-    __tablename__ = 'tracker_device_health'
+    __tablename__ = "tracker_device_health"
 
     device_id = db.Column(db.String(32), primary_key=True)  # TrackerDevice.public_id
     user_id = db.Column(db.String(32), index=True, nullable=False)
 
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
 
     battery_pct = db.Column(db.Integer, nullable=True)
     is_charging = db.Column(db.Boolean, nullable=True)
@@ -1306,28 +1439,30 @@ class TrackerDeviceHealth(db.Model):
 
     def extra(self) -> Dict[str, Any]:
         try:
-            return json.loads(self.extra_json or '{}') or {}
+            return json.loads(self.extra_json or "{}") or {}
         except Exception:
             return {}
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'device_id': self.device_id,
-            'user_id': self.user_id,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'battery_pct': self.battery_pct,
-            'is_charging': self.is_charging,
-            'net': self.net,
-            'gps': self.gps,
-            'accuracy_m': self.accuracy_m,
-            'queue_size': self.queue_size,
-            'tracking_on': self.tracking_on,
-            'last_send_at': self.last_send_at.isoformat() if self.last_send_at else None,
-            'last_error': self.last_error,
-            'app_version': self.app_version,
-            'device_model': self.device_model,
-            'os_version': self.os_version,
-            'extra': self.extra(),
+            "device_id": self.device_id,
+            "user_id": self.user_id,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "battery_pct": self.battery_pct,
+            "is_charging": self.is_charging,
+            "net": self.net,
+            "gps": self.gps,
+            "accuracy_m": self.accuracy_m,
+            "queue_size": self.queue_size,
+            "tracking_on": self.tracking_on,
+            "last_send_at": self.last_send_at.isoformat()
+            if self.last_send_at
+            else None,
+            "last_error": self.last_error,
+            "app_version": self.app_version,
+            "device_model": self.device_model,
+            "os_version": self.os_version,
+            "extra": self.extra(),
         }
 
 
@@ -1341,11 +1476,13 @@ class TrackerDeviceHealthLog(db.Model):
     здесь копим записи (в разумном режиме — раз в N секунд).
     """
 
-    __tablename__ = 'tracker_device_health_log'
+    __tablename__ = "tracker_device_health_log"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    device_id = db.Column(db.String(32), index=True, nullable=False)  # TrackerDevice.public_id
+    device_id = db.Column(
+        db.String(32), index=True, nullable=False
+    )  # TrackerDevice.public_id
     user_id = db.Column(db.String(32), index=True, nullable=False)
 
     ts = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
@@ -1371,29 +1508,31 @@ class TrackerDeviceHealthLog(db.Model):
 
     def extra(self) -> Dict[str, Any]:
         try:
-            return json.loads(self.extra_json or '{}') or {}
+            return json.loads(self.extra_json or "{}") or {}
         except Exception:
             return {}
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'device_id': self.device_id,
-            'user_id': self.user_id,
-            'ts': self.ts.isoformat() if self.ts else None,
-            'battery_pct': self.battery_pct,
-            'is_charging': self.is_charging,
-            'net': self.net,
-            'gps': self.gps,
-            'accuracy_m': self.accuracy_m,
-            'queue_size': self.queue_size,
-            'tracking_on': self.tracking_on,
-            'last_send_at': self.last_send_at.isoformat() if self.last_send_at else None,
-            'last_error': self.last_error,
-            'app_version': self.app_version,
-            'device_model': self.device_model,
-            'os_version': self.os_version,
-            'extra': self.extra(),
+            "id": self.id,
+            "device_id": self.device_id,
+            "user_id": self.user_id,
+            "ts": self.ts.isoformat() if self.ts else None,
+            "battery_pct": self.battery_pct,
+            "is_charging": self.is_charging,
+            "net": self.net,
+            "gps": self.gps,
+            "accuracy_m": self.accuracy_m,
+            "queue_size": self.queue_size,
+            "tracking_on": self.tracking_on,
+            "last_send_at": self.last_send_at.isoformat()
+            if self.last_send_at
+            else None,
+            "last_error": self.last_error,
+            "app_version": self.app_version,
+            "device_model": self.device_model,
+            "os_version": self.os_version,
+            "extra": self.extra(),
         }
 
 
@@ -1406,14 +1545,14 @@ class TrackerFingerprintSample(db.Model):
     реализована отдельным этапом (потребует индекс/поиск похожести).
     """
 
-    __tablename__ = 'tracker_fingerprint_samples'
-    __table_args__ = (
-        db.Index('ix_tracker_fp_device_ts', 'device_id', 'ts'),
-    )
+    __tablename__ = "tracker_fingerprint_samples"
+    __table_args__ = (db.Index("ix_tracker_fp_device_ts", "device_id", "ts"),)
 
     id = db.Column(db.Integer, primary_key=True)
 
-    device_id = db.Column(db.String(32), index=True, nullable=False)  # TrackerDevice.public_id
+    device_id = db.Column(
+        db.String(32), index=True, nullable=False
+    )  # TrackerDevice.public_id
     user_id = db.Column(db.String(32), index=True, nullable=False)
 
     ts = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
@@ -1431,41 +1570,41 @@ class TrackerFingerprintSample(db.Model):
     # Доп. контекст (режим трекинга, purpose=train|locate, etc.)
     meta_json = db.Column(db.Text, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
 
     def wifi(self) -> list[dict]:
         try:
-            return json.loads(self.wifi_json or '[]') or []
+            return json.loads(self.wifi_json or "[]") or []
         except Exception:
             return []
 
     def cell(self) -> list[dict]:
         try:
-            return json.loads(self.cell_json or '[]') or []
+            return json.loads(self.cell_json or "[]") or []
         except Exception:
             return []
 
     def meta(self) -> dict:
         try:
-            return json.loads(self.meta_json or '{}') or {}
+            return json.loads(self.meta_json or "{}") or {}
         except Exception:
             return {}
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'device_id': self.device_id,
-            'user_id': self.user_id,
-            'ts': self.ts.isoformat() if self.ts else None,
-            'lat': self.lat,
-            'lon': self.lon,
-            'accuracy_m': self.accuracy_m,
-            'wifi_count': len(self.wifi()),
-            'cell_count': len(self.cell()),
-            'meta': self.meta(),
+            "id": self.id,
+            "device_id": self.device_id,
+            "user_id": self.user_id,
+            "ts": self.ts.isoformat() if self.ts else None,
+            "lat": self.lat,
+            "lon": self.lon,
+            "accuracy_m": self.accuracy_m,
+            "wifi_count": len(self.wifi()),
+            "cell_count": len(self.cell()),
+            "meta": self.meta(),
         }
-
-
 
 
 class TrackerRadioTile(db.Model):
@@ -1476,7 +1615,7 @@ class TrackerRadioTile(db.Model):
     похожую плитку.
     """
 
-    __tablename__ = 'tracker_radio_tiles'
+    __tablename__ = "tracker_radio_tiles"
 
     # Простой grid-id: int(lat*1000) + '_' + int(lon*1000)
     tile_id = db.Column(db.String(64), primary_key=True)
@@ -1488,17 +1627,19 @@ class TrackerRadioTile(db.Model):
     ap_count = db.Column(db.Integer, default=0)
     cell_count = db.Column(db.Integer, default=0)
 
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
 
 
 class TrackerRadioAPStat(db.Model):
     """Статистика по Wi‑Fi AP в пределах плитки."""
 
-    __tablename__ = 'tracker_radio_ap_stats'
+    __tablename__ = "tracker_radio_ap_stats"
     __table_args__ = (
-        db.UniqueConstraint('tile_id', 'bssid_hash', name='uq_radio_ap_tile_bssid'),
-        db.Index('ix_radio_ap_bssid', 'bssid_hash'),
-        db.Index('ix_radio_ap_tile', 'tile_id'),
+        db.UniqueConstraint("tile_id", "bssid_hash", name="uq_radio_ap_tile_bssid"),
+        db.Index("ix_radio_ap_bssid", "bssid_hash"),
+        db.Index("ix_radio_ap_tile", "tile_id"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1509,7 +1650,9 @@ class TrackerRadioAPStat(db.Model):
     rssi_mean = db.Column(db.Float, nullable=True)
     rssi_m2 = db.Column(db.Float, nullable=True)  # Welford M2 for variance
 
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
 
     def var(self) -> Optional[float]:
         try:
@@ -1523,11 +1666,11 @@ class TrackerRadioAPStat(db.Model):
 class TrackerRadioCellStat(db.Model):
     """Статистика по Cell towers (клетка/сектор) в пределах плитки."""
 
-    __tablename__ = 'tracker_radio_cell_stats'
+    __tablename__ = "tracker_radio_cell_stats"
     __table_args__ = (
-        db.UniqueConstraint('tile_id', 'cell_key_hash', name='uq_radio_cell_tile_key'),
-        db.Index('ix_radio_cell_key', 'cell_key_hash'),
-        db.Index('ix_radio_cell_tile', 'tile_id'),
+        db.UniqueConstraint("tile_id", "cell_key_hash", name="uq_radio_cell_tile_key"),
+        db.Index("ix_radio_cell_key", "cell_key_hash"),
+        db.Index("ix_radio_cell_tile", "tile_id"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1538,7 +1681,9 @@ class TrackerRadioCellStat(db.Model):
     dbm_mean = db.Column(db.Float, nullable=True)
     dbm_m2 = db.Column(db.Float, nullable=True)
 
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
 
     def var(self) -> Optional[float]:
         try:
@@ -1548,6 +1693,7 @@ class TrackerRadioCellStat(db.Model):
             pass
         return None
 
+
 class TrackerAlert(db.Model):
     """Системный алёрт по устройству/наряду.
 
@@ -1555,26 +1701,37 @@ class TrackerAlert(db.Model):
     Алёрты создаются автоматическим чекером и транслируются в UI через WebSocket.
     """
 
-    __tablename__ = 'tracker_alerts'
+    __tablename__ = "tracker_alerts"
     __table_args__ = (
-        db.Index('ix_tracker_alerts_active', 'is_active', 'kind'),
-        db.Index('ix_tracker_alerts_device_kind', 'device_id', 'kind'),
-        db.Index('ix_tracker_alerts_user_kind', 'user_id', 'kind'),
+        db.Index("ix_tracker_alerts_active", "is_active", "kind"),
+        db.Index("ix_tracker_alerts_device_kind", "device_id", "kind"),
+        db.Index("ix_tracker_alerts_user_kind", "user_id", "kind"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
 
-    device_id = db.Column(db.String(32), index=True, nullable=True)  # TrackerDevice.public_id
+    device_id = db.Column(
+        db.String(32), index=True, nullable=True
+    )  # TrackerDevice.public_id
     user_id = db.Column(db.String(32), index=True, nullable=True)
 
-    kind = db.Column(db.String(32), index=True, nullable=False)       # stale_points, stale_health, low_battery...
-    severity = db.Column(db.String(16), default='warn', index=True)   # info/warn/crit
+    kind = db.Column(
+        db.String(32), index=True, nullable=False
+    )  # stale_points, stale_health, low_battery...
+    severity = db.Column(db.String(16), default="warn", index=True)  # info/warn/crit
 
     message = db.Column(db.String(256), nullable=True)
-    payload = db.Column(MutableDict.as_mutable(db.JSON().with_variant(JSONB, 'postgresql')), nullable=True)
+    payload = db.Column(
+        MutableDict.as_mutable(db.JSON().with_variant(JSONB, "postgresql")),
+        nullable=True,
+    )
 
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
+    updated_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
 
     is_active = db.Column(db.Boolean, default=True, index=True)
 
@@ -1606,22 +1763,21 @@ class TrackerAlert(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'device_id': self.device_id,
-            'user_id': self.user_id,
-            'kind': self.kind,
-            'severity': self.severity,
-            'message': self.message,
-            'payload': self.payload or {},
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'is_active': self.is_active,
-            'acked_at': self.acked_at.isoformat() if self.acked_at else None,
-            'acked_by': self.acked_by,
-            'closed_at': self.closed_at.isoformat() if self.closed_at else None,
-            'closed_by': self.closed_by,
+            "id": self.id,
+            "device_id": self.device_id,
+            "user_id": self.user_id,
+            "kind": self.kind,
+            "severity": self.severity,
+            "message": self.message,
+            "payload": self.payload or {},
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "is_active": self.is_active,
+            "acked_at": self.acked_at.isoformat() if self.acked_at else None,
+            "acked_by": self.acked_by,
+            "closed_at": self.closed_at.isoformat() if self.closed_at else None,
+            "closed_by": self.closed_by,
         }
-
 
 
 class TrackerAlertNotifyLog(db.Model):
@@ -1631,10 +1787,10 @@ class TrackerAlertNotifyLog(db.Model):
     а также для аудита, что именно и когда было отправлено диспетчеру.
     """
 
-    __tablename__ = 'tracker_alert_notify_log'
+    __tablename__ = "tracker_alert_notify_log"
     __table_args__ = (
-        db.Index('ix_tracker_alert_notify_device_kind', 'device_id', 'kind'),
-        db.Index('ix_tracker_alert_notify_sent_at', 'sent_at'),
+        db.Index("ix_tracker_alert_notify_device_kind", "device_id", "kind"),
+        db.Index("ix_tracker_alert_notify_sent_at", "sent_at"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1648,29 +1804,35 @@ class TrackerAlertNotifyLog(db.Model):
     # кому отправили (Telegram chat_id / user_id)
     sent_to = db.Column(db.String(64), index=True, nullable=False)
 
-    sent_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    sent_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
 
     # короткий "отпечаток" текста, чтобы понимать что именно было отправлено
     digest = db.Column(db.String(64), nullable=True)
 
 
-
 class TrackerAdminAudit(db.Model):
     """Аудит действий диспетчера/админа по трекеру."""
 
-    __tablename__ = 'tracker_admin_audit'
-    __table_args__ = (db.Index('ix_tracker_audit_ts', 'ts'),)
+    __tablename__ = "tracker_admin_audit"
+    __table_args__ = (db.Index("ix_tracker_audit_ts", "ts"),)
 
     id = db.Column(db.Integer, primary_key=True)
     ts = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
-    actor = db.Column(db.String(64), nullable=True)   # кто сделал действие (логин/имя)
-    action = db.Column(db.String(64), nullable=False) # REVOKE_DEVICE, ACK_ALERT, EXPORT_POINTS...
+    actor = db.Column(db.String(64), nullable=True)  # кто сделал действие (логин/имя)
+    action = db.Column(
+        db.String(64), nullable=False
+    )  # REVOKE_DEVICE, ACK_ALERT, EXPORT_POINTS...
 
     device_id = db.Column(db.String(32), nullable=True)
     user_id = db.Column(db.String(32), nullable=True)
 
-    payload = db.Column(MutableDict.as_mutable(db.JSON().with_variant(JSONB, 'postgresql')), nullable=True)
+    payload = db.Column(
+        MutableDict.as_mutable(db.JSON().with_variant(JSONB, "postgresql")),
+        nullable=True,
+    )
 
     @property
     def payload_json(self) -> Optional[str]:
@@ -1694,20 +1856,20 @@ class TrackerAdminAudit(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'ts': self.ts.isoformat() if self.ts else None,
-            'actor': self.actor,
-            'action': self.action,
-            'device_id': self.device_id,
-            'user_id': self.user_id,
-            'payload': self.payload or {},
+            "id": self.id,
+            "ts": self.ts.isoformat() if self.ts else None,
+            "actor": self.actor,
+            "action": self.action,
+            "device_id": self.device_id,
+            "user_id": self.user_id,
+            "payload": self.payload or {},
         }
-
 
 
 # ---------------------------------------------------------------------------
 # Общий аудит админских действий (security/ops)
 # ---------------------------------------------------------------------------
+
 
 class AdminAuditLog(db.Model):
     """Общий аудит действий администраторов.
@@ -1716,11 +1878,11 @@ class AdminAuditLog(db.Model):
     (логин/логаут, модификации чата, опасные операции офлайна и т.п.).
     """
 
-    __tablename__ = 'admin_audit_log'
+    __tablename__ = "admin_audit_log"
     __table_args__ = (
-        db.Index('ix_admin_audit_ts', 'ts'),
-        db.Index('ix_admin_audit_actor', 'actor'),
-        db.Index('ix_admin_audit_action', 'action'),
+        db.Index("ix_admin_audit_ts", "ts"),
+        db.Index("ix_admin_audit_actor", "actor"),
+        db.Index("ix_admin_audit_action", "action"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1734,7 +1896,10 @@ class AdminAuditLog(db.Model):
     path = db.Column(db.String(255), nullable=True)
 
     action = db.Column(db.String(64), nullable=False)
-    payload = db.Column(MutableDict.as_mutable(db.JSON().with_variant(JSONB, 'postgresql')), nullable=True)
+    payload = db.Column(
+        MutableDict.as_mutable(db.JSON().with_variant(JSONB, "postgresql")),
+        nullable=True,
+    )
 
     @property
     def payload_json(self) -> Optional[str]:
@@ -1758,13 +1923,13 @@ class AdminAuditLog(db.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
-            'ts': self.ts.isoformat() if self.ts else None,
-            'actor': self.actor,
-            'role': self.role,
-            'ip': self.ip,
-            'method': self.method,
-            'path': self.path,
-            'action': self.action,
-            'payload': self.payload or {},
+            "id": self.id,
+            "ts": self.ts.isoformat() if self.ts else None,
+            "actor": self.actor,
+            "role": self.role,
+            "ip": self.ip,
+            "method": self.method,
+            "path": self.path,
+            "action": self.action,
+            "payload": self.payload or {},
         }

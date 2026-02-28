@@ -25,7 +25,6 @@
 from __future__ import annotations
 
 import os
-import sys
 import time
 import uuid
 from typing import Optional
@@ -79,13 +78,21 @@ def _renew_lock(r: "Redis", key: str, token: str, ttl: int) -> bool:
 
 
 def main() -> int:
-    # В worker НЕ запускаем встроенные фоновые потоки create_app (мы управляем циклом сами).
+    # В worker НЕ запускаем встроенные фоновые потоки create_app
+    # (мы управляем циклом сами).
     os.environ["ENABLE_INTERNAL_SCHEDULERS"] = "0"
 
     app = create_app(get_config_class())
 
-    lock_key = os.getenv("SCHEDULER_LOCK_KEY", app.config.get("SCHEDULER_LOCK_KEY", "mapv12:schedulers:lock"))
-    lock_ttl = int(os.getenv("SCHEDULER_LOCK_TTL_SEC", app.config.get("SCHEDULER_LOCK_TTL_SEC", 60)))
+    lock_key = os.getenv(
+        "SCHEDULER_LOCK_KEY",
+        app.config.get("SCHEDULER_LOCK_KEY", "mapv12:schedulers:lock"),
+    )
+    lock_ttl = int(
+        os.getenv(
+            "SCHEDULER_LOCK_TTL_SEC", app.config.get("SCHEDULER_LOCK_TTL_SEC", 60)
+        )
+    )
     lock_token = f"{os.getenv('HOSTNAME', 'worker')}:{uuid.uuid4().hex}"
 
     duty_interval = int(os.getenv("DUTY_SCHEDULER_INTERVAL_SEC", "30"))
@@ -103,10 +110,15 @@ def main() -> int:
             if _acquire_lock(r, lock_key, lock_token, lock_ttl):
                 app.logger.info(f"[worker] scheduler lock acquired: {lock_key}")
                 break
-            app.logger.warning(f"[worker] scheduler lock busy, retry in 5s: {lock_key}")
+            app.logger.warning(
+                f"[worker] scheduler lock busy, retry in 5s: {lock_key}"
+            )
             time.sleep(5)
     else:
-        app.logger.warning("[worker] REDIS_URL not set or redis unavailable: running WITHOUT distributed lock")
+        app.logger.warning(
+            "[worker] REDIS_URL not set or redis unavailable: "
+            "running WITHOUT distributed lock"
+        )
 
     next_duty = 0.0
     next_tracker = 0.0
@@ -120,7 +132,9 @@ def main() -> int:
         if r and now >= next_renew:
             ok = _renew_lock(r, lock_key, lock_token, lock_ttl)
             if not ok:
-                app.logger.error("[worker] scheduler lock lost; exiting to avoid duplicates")
+                app.logger.error(
+                    "[worker] scheduler lock lost; exiting to avoid duplicates"
+                )
                 return 2
             next_renew = now + max(5, lock_ttl // 2)
 

@@ -23,7 +23,14 @@ from ..extensions import db
 from ..realtime.hub import broadcast_sync
 from ..realtime.broker import get_broker
 from ..security.rate_limit import check_rate_limit
-from ..models import Incident, IncidentEvent, IncidentAssignment, DutyShift, TrackerDevice, Object
+from ..models import (
+    Incident,
+    IncidentEvent,
+    IncidentAssignment,
+    DutyShift,
+    TrackerDevice,
+    Object,
+)
 from ..schemas import IncidentCreateSchema, IncidentChatSendSchema
 from app.db.cockroach_utils import retry_on_serialization_failure
 
@@ -44,37 +51,50 @@ def _rate_ident() -> str:
 
     Prefer admin username when in admin session; fall back to device header or IP.
     """
-    if session.get('is_admin'):
-        user = session.get('admin_username') or session.get('username') or session.get('admin_id') or 'admin'
-        return f'admin:{user}'
-    did = (request.headers.get('X-Device-ID') or request.headers.get('X-DEVICE-ID') or '').strip()
+    if session.get("is_admin"):
+        user = (
+            session.get("admin_username")
+            or session.get("username")
+            or session.get("admin_id")
+            or "admin"
+        )
+        return f"admin:{user}"
+    did = (
+        request.headers.get("X-Device-ID") or request.headers.get("X-DEVICE-ID") or ""
+    ).strip()
     if did:
-        return f'dev:{did}'
-    ip = (request.headers.get('CF-Connecting-IP') or request.remote_addr or 'ip')
-    return f'ip:{ip}'
-
-
+        return f"dev:{did}"
+    ip = request.headers.get("CF-Connecting-IP") or request.remote_addr or "ip"
+    return f"ip:{ip}"
 
 
 @retry_on_serialization_failure(max_retries=3, delay=0.5)
 def _commit_incident_write() -> None:
     db.session.commit()
 
+
 def _rate_limit_or_429(bucket: str, limit: int, window_seconds: int = 60):
     """Return a Flask response (429) if rate limited, else None."""
     try:
-        ok, info = check_rate_limit(bucket=bucket, ident=_rate_ident(), limit=int(limit), window_seconds=int(window_seconds))
+        ok, info = check_rate_limit(
+            bucket=bucket,
+            ident=_rate_ident(),
+            limit=int(limit),
+            window_seconds=int(window_seconds),
+        )
     except Exception:
         # If rate limiter is broken, do not block the request (best-effort).
         return None
     if ok:
         return None
-    resp = jsonify({
-        'error': 'rate_limited',
-        'message': 'Too many requests',
-        'bucket': bucket,
-        **info.to_headers(),
-    })
+    resp = jsonify(
+        {
+            "error": "rate_limited",
+            "message": "Too many requests",
+            "bucket": bucket,
+            **info.to_headers(),
+        }
+    )
     resp.status_code = 429
     try:
         for k, v in info.http_headers().items():
@@ -93,6 +113,7 @@ def _rate_limit_or_429(bucket: str, limit: int, window_seconds: int = 60):
 # отправления и прибытия. Можно расширить, чтобы возвращать список ID
 # инцидентов/назначений для подробной панели.
 
+
 @bp.get("/sla_overdue")
 def api_incidents_sla_overdue():
     """Получить агрегированную статистику по просроченным SLA.
@@ -103,13 +124,17 @@ def api_incidents_sla_overdue():
     инцидентов или детальной информации.
     """
     require_admin("viewer")
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     now = datetime.now(timezone.utc)
     # Собираем только активные инциденты (не закрытые)
     assignments = (
-        IncidentAssignment.query
-        .join(Incident, Incident.id == IncidentAssignment.incident_id)
-        .filter(Incident.status.in_(["new", "assigned", "enroute", "on_scene", "resolved"]))
+        IncidentAssignment.query.join(
+            Incident, Incident.id == IncidentAssignment.incident_id
+        )
+        .filter(
+            Incident.status.in_(["new", "assigned", "enroute", "on_scene", "resolved"])
+        )
         .all()
     )
     accept_breach = 0
@@ -128,11 +153,13 @@ def api_incidents_sla_overdue():
         elif a.enroute_at and not a.on_scene_at:
             if (now - a.enroute_at).total_seconds() > SLA_ON_SCENE_LIMIT:
                 onscene_breach += 1
-    return jsonify({
-        "accept_breach_count": accept_breach,
-        "enroute_breach_count": enroute_breach,
-        "on_scene_breach_count": onscene_breach,
-    }), 200
+    return jsonify(
+        {
+            "accept_breach_count": accept_breach,
+            "enroute_breach_count": enroute_breach,
+            "on_scene_breach_count": onscene_breach,
+        }
+    ), 200
 
 
 @bp.get("/stats")
@@ -147,6 +174,7 @@ def api_incidents_stats() -> Any:
     total = Incident.query.count()
     # counts by status
     from sqlalchemy import func
+
     status_counts = (
         db.session.query(Incident.status, func.count(Incident.id))
         .group_by(Incident.status)
@@ -160,7 +188,9 @@ def api_incidents_stats() -> Any:
     result = {
         "total": total,
         "by_status": {s if s is not None else "unknown": c for s, c in status_counts},
-        "by_priority": {int(p) if p is not None else "unknown": c for p, c in pri_counts},
+        "by_priority": {
+            int(p) if p is not None else "unknown": c for p, c in pri_counts
+        },
     }
     return jsonify(result), 200
 
@@ -185,8 +215,6 @@ def _get_current_user() -> tuple[str, str]:
     abort(403)
 
 
-
-
 @bp.post("/<int:incident_id>/chat/send")
 def api_incident_chat_send(incident_id: int) -> tuple[Response, int] | Response:
     """Send incident chat message via HTTP -> DB -> Redis Pub/Sub pipeline."""
@@ -198,14 +226,18 @@ def api_incident_chat_send(incident_id: int) -> tuple[Response, int] | Response:
 
     payload: Dict[str, Any] = request.get_json(silent=True, force=True) or {}
     try:
-        contract: IncidentChatSendSchema = IncidentChatSendSchema.model_validate(payload)
+        contract: IncidentChatSendSchema = IncidentChatSendSchema.model_validate(
+            payload
+        )
     except ValidationError as exc:
         return jsonify({"error": "validation_failed", "details": exc.errors()}), 400
 
     sender_type, fallback_sender_id = _get_current_user()
     role: str = "dispatcher" if sender_type == "admin" else "agent"
     author_id: str = contract.author_id or fallback_sender_id
-    author_name: str = str(session.get("admin_username") or session.get("username") or author_id)
+    author_name: str = str(
+        session.get("admin_username") or session.get("username") or author_id
+    )
     text: str = contract.text
 
     chat_payload: Dict[str, Any] = {
@@ -224,7 +256,11 @@ def api_incident_chat_send(incident_id: int) -> tuple[Response, int] | Response:
     db.session.add(chat_event)
     db.session.commit()
 
-    timestamp_iso: str = chat_event.ts.isoformat() if chat_event.ts else datetime.now(timezone.utc).isoformat()
+    timestamp_iso: str = (
+        chat_event.ts.isoformat()
+        if chat_event.ts
+        else datetime.now(timezone.utc).isoformat()
+    )
     message_envelope: Dict[str, Any] = {
         "id": chat_event.id,
         "author": author_name,
@@ -240,7 +276,10 @@ def api_incident_chat_send(incident_id: int) -> tuple[Response, int] | Response:
     }
 
     if not get_broker().publish_event("map_updates", broker_payload):
-        current_app.logger.warning("incident chat publish failed", extra={"incident_id": incident_id, "message_id": chat_event.id})
+        current_app.logger.warning(
+            "incident chat publish failed",
+            extra={"incident_id": incident_id, "message_id": chat_event.id},
+        )
 
     return jsonify({"status": "delivered"}), 201
 
@@ -263,24 +302,38 @@ def api_incidents_create() -> tuple[Response, int] | Response:
     """
     # Проверяем права администратора (editor минимально)
     require_admin("editor")
-    rl = _rate_limit_or_429('incidents_write', current_app.config.get('RATE_LIMIT_INCIDENTS_WRITE_PER_MINUTE', 180), 60)
+    rl = _rate_limit_or_429(
+        "incidents_write",
+        current_app.config.get("RATE_LIMIT_INCIDENTS_WRITE_PER_MINUTE", 180),
+        60,
+    )
     if rl is not None:
         return rl
     payload: Dict[str, Any] = request.get_json(silent=True, force=True) or {}
 
     # Pydantic validation (FastAPI-style): validates key contract fields.
-    candidate_location = (payload.get("location") or payload.get("address") or "").strip()
-    if not candidate_location and payload.get("lat") is not None and payload.get("lon") is not None:
+    candidate_location = (
+        payload.get("location") or payload.get("address") or ""
+    ).strip()
+    if (
+        not candidate_location
+        and payload.get("lat") is not None
+        and payload.get("lon") is not None
+    ):
         candidate_location = f"{payload.get('lat')},{payload.get('lon')}"
-    candidate_title = (payload.get("title") or payload.get("address") or "Incident").strip()
+    candidate_title = (
+        payload.get("title") or payload.get("address") or "Incident"
+    ).strip()
     candidate_description = (payload.get("description") or "No description").strip()
     try:
-        contract = IncidentCreateSchema.model_validate({
-            "title": candidate_title,
-            "description": candidate_description,
-            "level": payload.get("level", payload.get("priority", 3)),
-            "location": candidate_location or "Unknown",
-        })
+        contract = IncidentCreateSchema.model_validate(
+            {
+                "title": candidate_title,
+                "description": candidate_description,
+                "level": payload.get("level", payload.get("priority", 3)),
+                "location": candidate_location or "Unknown",
+            }
+        )
     except ValidationError as e:
         return jsonify({"error": "Validation failed", "details": e.errors()}), 400
 
@@ -306,7 +359,7 @@ def api_incidents_create() -> tuple[Response, int] | Response:
                 lat = obj.lat
                 lon = obj.lon
                 if not address:
-                    address = (obj.name or '').strip() or None
+                    address = (obj.name or "").strip() or None
         except Exception:
             obj = None
 
@@ -318,7 +371,9 @@ def api_incidents_create() -> tuple[Response, int] | Response:
 
     # Если object_id не передан, lat/lon должны быть
     if not object_id and (lat is None or lon is None):
-        return jsonify({"error": "lat and lon are required if object_id is not provided"}), 400
+        return jsonify(
+            {"error": "lat and lon are required if object_id is not provided"}
+        ), 400
 
     inc = Incident(
         object_id=object_id,
@@ -365,8 +420,10 @@ def api_incidents_list():
       - ``status`` — строка или список через запятую
       - ``priority`` — число или список через запятую
       - ``q`` — строка поиска по адресу и описанию (case‑insensitive)
-      - ``from``/``created_from`` — ограничить поиск инцидентов, созданных **не ранее** указанной даты (ISO)
-      - ``to``/``created_to`` — ограничить поиск инцидентов, созданных **не позднее** указанной даты (ISO)
+      - ``from``/``created_from`` — ограничить поиск инцидентов,
+        созданных **не ранее** указанной даты (ISO)
+      - ``to``/``created_to`` — ограничить поиск инцидентов,
+        созданных **не позднее** указанной даты (ISO)
       - ``limit`` — максимум записей (по умолчанию 50)
       - ``offset`` — смещение (по умолчанию 0)
     """
@@ -374,7 +431,11 @@ def api_incidents_list():
     status_filter = request.args.get("status")
     priority_filter = request.args.get("priority")
     qterm = (request.args.get("q") or "").strip().lower()
-    tagterm = (request.args.get("tag") or request.args.get("object_tag") or "").strip().lower()
+    tagterm = (
+        (request.args.get("tag") or request.args.get("object_tag") or "")
+        .strip()
+        .lower()
+    )
     # limits and pagination
     try:
         limit = int(request.args.get("limit") or 50)
@@ -386,8 +447,12 @@ def api_incidents_list():
         offset = 0
 
     # optional created_at filters (ISO dates)
-    created_from = (request.args.get("from") or request.args.get("created_from") or "").strip()
-    created_to = (request.args.get("to") or request.args.get("created_to") or "").strip()
+    created_from = (
+        request.args.get("from") or request.args.get("created_from") or ""
+    ).strip()
+    created_to = (
+        request.args.get("to") or request.args.get("created_to") or ""
+    ).strip()
 
     query = Incident.query
     if status_filter:
@@ -409,14 +474,18 @@ def api_incidents_list():
     # optional tag filter (по тегам объекта и имени объекта)
     if tagterm:
         tag_like = f"%{tagterm}%"
-        # Incident.object relationship exists; filter incidents whose object has matching tags/name
+        # Incident.object relationship exists; filter incidents whose
+        # object has matching tags/name.
         query = query.filter(
-            Incident.object.has((Object.tags.ilike(tag_like)) | (Object.name.ilike(tag_like)))
+            Incident.object.has(
+                (Object.tags.ilike(tag_like)) | (Object.name.ilike(tag_like))
+            )
         )
     # apply date filters
     from_dt = None
     to_dt = None
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     try:
         if created_from:
             # support date or datetime
@@ -433,10 +502,7 @@ def api_incidents_list():
     if to_dt:
         query = query.filter(Incident.created_at <= to_dt)
     incidents = (
-        query.order_by(Incident.created_at.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
+        query.order_by(Incident.created_at.desc()).offset(offset).limit(limit).all()
     )
     return jsonify([i.to_dict() for i in incidents]), 200
 
@@ -471,7 +537,11 @@ def api_incidents_geo():
 
     status_filter = request.args.get("status")
     priority_filter = request.args.get("priority")
-    tagterm = (request.args.get("tag") or request.args.get("object_tag") or "").strip().lower()
+    tagterm = (
+        (request.args.get("tag") or request.args.get("object_tag") or "")
+        .strip()
+        .lower()
+    )
 
     try:
         limit = int(request.args.get("limit") or 500)
@@ -514,9 +584,19 @@ def api_incidents_geo():
         like = f"%{tagterm}%"
         q = q.filter((Object.tags.ilike(like)) | (Object.name.ilike(like)))
 
-    if west is not None and south is not None and east is not None and north is not None:
+    if (
+        west is not None
+        and south is not None
+        and east is not None
+        and north is not None
+    ):
         # leaflets bounds: west<=lon<=east, south<=lat<=north
-        q = q.filter(Incident.lon >= west, Incident.lon <= east, Incident.lat >= south, Incident.lat <= north)
+        q = q.filter(
+            Incident.lon >= west,
+            Incident.lon <= east,
+            Incident.lat >= south,
+            Incident.lat <= north,
+        )
 
     rows = q.order_by(Incident.created_at.desc()).limit(limit).all()
 
@@ -530,7 +610,9 @@ def api_incidents_geo():
                 "status": r.status,
                 "priority": int(r.priority) if r.priority is not None else None,
                 "address": r.address,
-                "created_at": r.created_at.isoformat() if getattr(r, "created_at", None) else None,
+                "created_at": r.created_at.isoformat()
+                if getattr(r, "created_at", None)
+                else None,
                 "object": {
                     "id": r.object_id,
                     "name": r.object_name,
@@ -554,7 +636,6 @@ def api_incidents_get(incident_id: int):
     return jsonify(inc.to_dict()), 200
 
 
-
 @bp.route("/<int:incident_id>", methods=["PUT", "PATCH"])
 def api_incidents_update(incident_id: int):
     """Обновить инцидент (минимальный CRUD для Command Center).
@@ -570,7 +651,11 @@ def api_incidents_update(incident_id: int):
     Возвращает обновлённый инцидент.
     """
     require_admin("editor")
-    rl = _rate_limit_or_429('incidents_write', current_app.config.get('RATE_LIMIT_INCIDENTS_WRITE_PER_MINUTE', 180), 60)
+    rl = _rate_limit_or_429(
+        "incidents_write",
+        current_app.config.get("RATE_LIMIT_INCIDENTS_WRITE_PER_MINUTE", 180),
+        60,
+    )
     if rl is not None:
         return rl
 
@@ -611,7 +696,11 @@ def api_incidents_update(incident_id: int):
     # priority/status
     if "priority" in payload:
         try:
-            inc.priority = int(payload.get("priority")) if payload.get("priority") is not None else None
+            inc.priority = (
+                int(payload.get("priority"))
+                if payload.get("priority") is not None
+                else None
+            )
         except Exception:
             pass
     if "status" in payload:
@@ -624,7 +713,21 @@ def api_incidents_update(incident_id: int):
         ev = IncidentEvent(
             incident_id=inc.id,
             event_type="updated",
-            payload_json=json.dumps({k: payload.get(k) for k in ["lat","lon","address","description","priority","status","object_id"] if k in payload}),
+            payload_json=json.dumps(
+                {
+                    k: payload.get(k)
+                    for k in [
+                        "lat",
+                        "lon",
+                        "address",
+                        "description",
+                        "priority",
+                        "status",
+                        "object_id",
+                    ]
+                    if k in payload
+                }
+            ),
             ts=datetime.now(timezone.utc),
         )
         db.session.add(ev)
@@ -649,7 +752,11 @@ def api_incidents_delete(incident_id: int):
     Доступно администраторам (editor). Удаляет инцидент и связанные события/назначения.
     """
     require_admin("editor")
-    rl = _rate_limit_or_429('incidents_write', current_app.config.get('RATE_LIMIT_INCIDENTS_WRITE_PER_MINUTE', 180), 60)
+    rl = _rate_limit_or_429(
+        "incidents_write",
+        current_app.config.get("RATE_LIMIT_INCIDENTS_WRITE_PER_MINUTE", 180),
+        60,
+    )
     if rl is not None:
         return rl
 
@@ -687,20 +794,26 @@ def api_incident_events(incident_id: int):
     inc = Incident.query.filter_by(id=incident_id).first()
     if not inc:
         return jsonify({"error": "incident not found"}), 404
-    events = IncidentEvent.query.filter_by(incident_id=incident_id).order_by(IncidentEvent.ts.asc()).all()
+    events = (
+        IncidentEvent.query.filter_by(incident_id=incident_id)
+        .order_by(IncidentEvent.ts.asc())
+        .all()
+    )
     result = []
     for ev in events:
         try:
             payload = json.loads(ev.payload_json) if ev.payload_json else None
         except Exception:
             payload = None
-        result.append({
-            "id": ev.id,
-            "incident_id": ev.incident_id,
-            "event_type": ev.event_type,
-            "payload": payload,
-            "ts": ev.ts.isoformat() if ev.ts else None,
-        })
+        result.append(
+            {
+                "id": ev.id,
+                "incident_id": ev.incident_id,
+                "event_type": ev.event_type,
+                "payload": payload,
+                "ts": ev.ts.isoformat() if ev.ts else None,
+            }
+        )
     return jsonify(result), 200
 
 
@@ -735,19 +848,21 @@ def api_incident_assignments(incident_id: int):
             elif not a.on_scene_at:
                 if (now - a.enroute_at).total_seconds() > SLA_ON_SCENE_LIMIT:
                     sla_onscene_breach = True
-        result.append({
-            "id": a.id,
-            "shift_id": a.shift_id,
-            "assigned_at": a.assigned_at.isoformat() if a.assigned_at else None,
-            "accepted_at": a.accepted_at.isoformat() if a.accepted_at else None,
-            "enroute_at": a.enroute_at.isoformat() if a.enroute_at else None,
-            "on_scene_at": a.on_scene_at.isoformat() if a.on_scene_at else None,
-            "resolved_at": a.resolved_at.isoformat() if a.resolved_at else None,
-            "closed_at": a.closed_at.isoformat() if a.closed_at else None,
-            "sla_accept_breach": sla_accept_breach,
-            "sla_enroute_breach": sla_enroute_breach,
-            "sla_onscene_breach": sla_onscene_breach,
-        })
+        result.append(
+            {
+                "id": a.id,
+                "shift_id": a.shift_id,
+                "assigned_at": a.assigned_at.isoformat() if a.assigned_at else None,
+                "accepted_at": a.accepted_at.isoformat() if a.accepted_at else None,
+                "enroute_at": a.enroute_at.isoformat() if a.enroute_at else None,
+                "on_scene_at": a.on_scene_at.isoformat() if a.on_scene_at else None,
+                "resolved_at": a.resolved_at.isoformat() if a.resolved_at else None,
+                "closed_at": a.closed_at.isoformat() if a.closed_at else None,
+                "sla_accept_breach": sla_accept_breach,
+                "sla_enroute_breach": sla_enroute_breach,
+                "sla_onscene_breach": sla_onscene_breach,
+            }
+        )
     return jsonify(result), 200
 
 
@@ -762,7 +877,11 @@ def api_incident_assign(incident_id: int):
     назначение без изменений.
     """
     require_admin("editor")
-    rl = _rate_limit_or_429('incidents_write', current_app.config.get('RATE_LIMIT_INCIDENTS_WRITE_PER_MINUTE', 180), 60)
+    rl = _rate_limit_or_429(
+        "incidents_write",
+        current_app.config.get("RATE_LIMIT_INCIDENTS_WRITE_PER_MINUTE", 180),
+        60,
+    )
     if rl is not None:
         return rl
     inc = Incident.query.filter_by(id=incident_id).first()
@@ -777,7 +896,9 @@ def api_incident_assign(incident_id: int):
     if not shift:
         return jsonify({"error": "shift not found"}), 404
     # Проверяем, нет ли уже назначения для этого shift
-    assignment = IncidentAssignment.query.filter_by(incident_id=incident_id, shift_id=shift_id).first()
+    assignment = IncidentAssignment.query.filter_by(
+        incident_id=incident_id, shift_id=shift_id
+    ).first()
     now = datetime.now(timezone.utc)
     if assignment:
         return jsonify(assignment.to_dict()), 200
@@ -824,7 +945,11 @@ def api_incident_update_status(incident_id: int):
     """
     # Определяем пользователя: админ или устройство
     sender_type, sender_id = _get_current_user()
-    rl = _rate_limit_or_429('incidents_write', current_app.config.get('RATE_LIMIT_INCIDENTS_WRITE_PER_MINUTE', 180), 60)
+    rl = _rate_limit_or_429(
+        "incidents_write",
+        current_app.config.get("RATE_LIMIT_INCIDENTS_WRITE_PER_MINUTE", 180),
+        60,
+    )
     if rl is not None:
         return rl
     inc = Incident.query.filter_by(id=incident_id).first()
@@ -837,43 +962,52 @@ def api_incident_update_status(incident_id: int):
         return jsonify({"error": "status is required"}), 400
     # Определяем допустимые статусы
     allowed = {
-        'accepted': 'accepted_at',
-        'enroute': 'enroute_at',
-        'on_scene': 'on_scene_at',
-        'resolved': 'resolved_at',
-        'closed': 'closed_at',
+        "accepted": "accepted_at",
+        "enroute": "enroute_at",
+        "on_scene": "on_scene_at",
+        "resolved": "resolved_at",
+        "closed": "closed_at",
     }
     if status not in allowed:
         return jsonify({"error": "invalid status"}), 400
     # Находим назначение
     assignment: Optional[IncidentAssignment] = None
     if shift_id:
-        assignment = IncidentAssignment.query.filter_by(incident_id=incident_id, shift_id=shift_id).first()
+        assignment = IncidentAssignment.query.filter_by(
+            incident_id=incident_id, shift_id=shift_id
+        ).first()
     else:
         # Если shift_id не передан, ищем назначение по отправителю
-        if sender_type == 'tracker':
-            # Найти устройство по public_id (sender_id) и определить пользователя (user_id)
+        if sender_type == "tracker":
+            # Найти устройство по public_id (sender_id) и определить
+            # пользователя (user_id)
             device = TrackerDevice.query.filter_by(public_id=sender_id).first()
             if device:
                 # Найти активную смену пользователя
-                shift = DutyShift.query.filter_by(user_id=device.user_id, ended_at=None).order_by(DutyShift.started_at.desc()).first()
+                shift = (
+                    DutyShift.query.filter_by(user_id=device.user_id, ended_at=None)
+                    .order_by(DutyShift.started_at.desc())
+                    .first()
+                )
                 if shift:
-                    assignment = IncidentAssignment.query.filter_by(incident_id=incident_id, shift_id=shift.id).first()
+                    assignment = IncidentAssignment.query.filter_by(
+                        incident_id=incident_id, shift_id=shift.id
+                    ).first()
     if not assignment:
         return jsonify({"error": "assignment not found"}), 404
     now = datetime.now(timezone.utc)
     setattr(assignment, allowed[status], now)
     # Обновляем статус инцидента в зависимости от действия
-    if status == 'accepted':
-        inc.status = 'assigned'
-    elif status == 'enroute':
-        inc.status = 'enroute'
-    elif status == 'on_scene':
-        inc.status = 'on_scene'
-    elif status == 'resolved':
-        inc.status = 'resolved'
-    elif status == 'closed':
-        inc.status = 'closed'
+    if status == "accepted":
+        inc.status = "assigned"
+    elif status == "enroute":
+        inc.status = "enroute"
+    elif status == "on_scene":
+        inc.status = "on_scene"
+    elif status == "resolved":
+        inc.status = "resolved"
+    elif status == "closed":
+        inc.status = "closed"
     # Записываем событие
     ev = IncidentEvent(
         incident_id=incident_id,

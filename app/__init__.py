@@ -25,16 +25,24 @@ def _apply_security_headers(app: Flask) -> None:
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("X-XSS-Protection", "1; mode=block")
-        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Referrer-Policy", "strict-origin-when-cross-origin"
+        )
         response.headers.setdefault(
             "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
         )
         response.headers.setdefault(
             "Content-Security-Policy",
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
-            "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
-            "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://unpkg.com; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+            "https://unpkg.com https://cdn.jsdelivr.net "
+            "https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' https://unpkg.com "
+            "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
+            "https://fonts.googleapis.com; "
+            "img-src 'self' data: blob: "
+            "https://*.tile.openstreetmap.org "
+            "https://*.basemaps.cartocdn.com https://unpkg.com; "
             "connect-src 'self' ws: wss: https:; "
             "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
             "object-src 'none'",
@@ -49,20 +57,26 @@ def create_app(config_class: type = Config) -> Flask:
     """Flask application factory.
 
     Args:
-        config_class: Configuration class (DevelopmentConfig / ProductionConfig / TestingConfig)
+        config_class: Configuration class
+            (DevelopmentConfig / ProductionConfig / TestingConfig)
 
     Returns:
         Configured Flask application with all blueprints registered.
     """
     app = Flask(
         __name__,
-        template_folder=os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates"),
-        static_folder=os.path.join(os.path.dirname(os.path.dirname(__file__)), "static"),
+        template_folder=os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "templates"
+        ),
+        static_folder=os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "static"
+        ),
     )
     app.config.from_object(config_class)
 
     # ── Extensions ────────────────────────────────────────────
     from app.extensions import init_extensions
+
     init_extensions(app)
 
     # ── Security headers ──────────────────────────────────────
@@ -98,9 +112,17 @@ def create_app(config_class: type = Config) -> Flask:
 
     # Blueprints with url_prefix already set
     for bp_obj in [
-        admin_users_bp, analytics_bp, chat_bp, event_chat_bp,
-        handshake_bp, incidents_bp, maintenance_bp, notifications_bp,
-        realtime_bp, terminals_bp, video_bp,
+        admin_users_bp,
+        analytics_bp,
+        chat_bp,
+        event_chat_bp,
+        handshake_bp,
+        incidents_bp,
+        maintenance_bp,
+        notifications_bp,
+        realtime_bp,
+        terminals_bp,
+        video_bp,
     ]:
         app.register_blueprint(bp_obj)
 
@@ -123,6 +145,7 @@ def create_app(config_class: type = Config) -> Flask:
     # ── Observability ─────────────────────────────────────────
     try:
         from app.observability.metrics import register_metrics
+
         register_metrics(app)
     except Exception:
         pass
@@ -144,6 +167,7 @@ def create_app(config_class: type = Config) -> Flask:
     # ── CLI commands ──────────────────────────────────────────
     try:
         from app.commands import register_commands
+
         register_commands(app)
     except Exception:
         pass
@@ -151,6 +175,7 @@ def create_app(config_class: type = Config) -> Flask:
     # ── Database init ─────────────────────────────────────────
     with app.app_context():
         from app.extensions import db
+
         db.create_all()
 
     logger.warning("[SYSTEM] PLAYE Command Center v5 initialised (Flask factory).")

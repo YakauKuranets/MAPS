@@ -28,7 +28,6 @@ from ..audit.logger import log_admin_action
 from ..security.rate_limit import check_rate_limit
 from ..services.chat_service import (
     list_conversations,
-    get_history,
     get_history_paged,
     get_history_before,
     send_message,
@@ -60,9 +59,18 @@ def _require_bot_key() -> None:
 def _rate_limit_chat() -> None:
     """Мягкий лимит на чат-запросы (чтобы не забили сервер)."""
     try:
-        ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown").split(",")[0].strip()
+        ip = (
+            request.headers.get("X-Forwarded-For")
+            or request.remote_addr
+            or "unknown"
+        ).split(",")[0].strip()
         limit = int(current_app.config.get("RATE_LIMIT_CHAT_PER_MINUTE", 120))
-        ok, info = check_rate_limit(bucket="chat", ident=ip, limit=limit, window_seconds=60)
+        ok, info = check_rate_limit(
+            bucket="chat",
+            ident=ip,
+            limit=limit,
+            window_seconds=60,
+        )
         if not ok:
             abort(429)
     except Exception:
@@ -119,11 +127,19 @@ def api_get_history(user_id: str):
         return jsonify(history)
 
     # backward-friendly: если клиент не передал пагинацию — отдаём последние N
-    has_paging = ("limit" in request.args) or ("offset" in request.args) or ("tail" in request.args)
+    has_paging = (
+        ("limit" in request.args)
+        or ("offset" in request.args)
+        or ("tail" in request.args)
+    )
     if has_paging:
         limit = request.args.get("limit", 500)
         offset = request.args.get("offset", 0)
-        tail = str(request.args.get("tail", "0")).strip().lower() in ("1", "true", "yes")
+        tail = str(request.args.get("tail", "0")).strip().lower() in (
+            "1",
+            "true",
+            "yes",
+        )
         history = get_history_paged(
             user_id=str(user_id),
             limit=limit,
@@ -132,7 +148,13 @@ def api_get_history(user_id: str):
             mark_as_read=True,
         )
     else:
-        history = get_history_paged(user_id=str(user_id), limit=500, offset=0, tail=True, mark_as_read=True)
+        history = get_history_paged(
+            user_id=str(user_id),
+            limit=500,
+            offset=0,
+            tail=True,
+            mark_as_read=True,
+        )
 
     return jsonify(history)
 
@@ -164,16 +186,32 @@ def api_send_message(user_id: str):
         profile = u
     else:
         # поддержим плоский формат
-        for k in ('username', 'first_name', 'last_name', 'display_name', 'tg_username', 'tg_first_name', 'tg_last_name'):
+        for k in (
+            'username',
+            'first_name',
+            'last_name',
+            'display_name',
+            'tg_username',
+            'tg_first_name',
+            'tg_last_name',
+        ):
             if k in payload:
                 profile[k] = payload.get(k)
 
     if not text:
         return jsonify({"error": "text is required"}), 400
 
-    msg_dict = send_message(user_id=str(user_id), text=text, sender=sender, profile=profile or None)
+    msg_dict = send_message(
+        user_id=str(user_id),
+        text=text,
+        sender=sender,
+        profile=profile or None,
+    )
     if session.get('is_admin'):
-        log_admin_action('chat.send_message', {'user_id': str(user_id), 'sender': sender})
+        log_admin_action(
+            'chat.send_message',
+            {'user_id': str(user_id), 'sender': sender},
+        )
     return jsonify(msg_dict), 201
 
 
@@ -270,7 +308,13 @@ def api_clear_history(user_id: str):
     Возвращает количество удалённых сообщений и текущее состояние диалога.
     """
     result = clear_history(user_id=str(user_id))
-    log_admin_action('chat.clear_history', {'user_id': str(user_id), 'deleted': int(result.get('deleted') or 0)})
+    log_admin_action(
+        'chat.clear_history',
+        {
+            'user_id': str(user_id),
+            'deleted': int(result.get('deleted') or 0),
+        },
+    )
     return jsonify(result)
 
 
@@ -281,5 +325,4 @@ def api_delete_dialog(user_id: str):
     result = delete_dialog(user_id=str(user_id))
     log_admin_action('chat.delete_dialog', {'user_id': str(user_id)})
     return jsonify(result)
-
 

@@ -20,7 +20,6 @@ from .models import Channel, Message, ChannelMember, PushToken
 from compat_werkzeug_utils import secure_filename
 import os
 import uuid
-import json
 
 # Импортируем rate-limiter, метрики и push
 from .ratelimit import check_rate
@@ -49,20 +48,28 @@ def _get_current_user() -> tuple[str, str]:
     abort(403)
 
 
-
-def _unread_count_for_member(channel_id: str, member_type: str, member_id: str, *, exclude_self: bool = True) -> int:
+def _unread_count_for_member(
+    channel_id: str, member_type: str, member_id: str, *, exclude_self: bool = True
+) -> int:
     """Подсчитать непрочитанные сообщения для участника канала.
 
-    В MVP считаем непрочитанными сообщения, созданные после last_read_message_id/last_read_at.
+    В MVP считаем непрочитанными сообщения,
+    созданные после last_read_message_id/last_read_at.
     По умолчанию исключаем собственные сообщения участника.
     """
     q = Message.query.filter(Message.channel_id == channel_id)
     if exclude_self:
-        q = q.filter(~((Message.sender_type == member_type) & (Message.sender_id == member_id)))
+        q = q.filter(
+            ~((Message.sender_type == member_type) & (Message.sender_id == member_id))
+        )
 
-    cm = ChannelMember.query.filter_by(channel_id=channel_id, member_type=member_type, member_id=member_id).first()
+    cm = ChannelMember.query.filter_by(
+        channel_id=channel_id, member_type=member_type, member_id=member_id
+    ).first()
     if cm and cm.last_read_message_id:
-        ref = Message.query.filter_by(id=cm.last_read_message_id, channel_id=channel_id).first()
+        ref = Message.query.filter_by(
+            id=cm.last_read_message_id, channel_id=channel_id
+        ).first()
         if ref and ref.created_at:
             q = q.filter(Message.created_at > ref.created_at)
         elif cm.last_read_at:
@@ -103,7 +110,12 @@ def api_create_channel():
         return jsonify({"error": "type is required"}), 400
     shift_id: Optional[int] = payload.get("shift_id")
     marker_id: Optional[int] = payload.get("marker_id")
-    channel = Channel(type=typ, shift_id=shift_id, marker_id=marker_id, created_at=datetime.now(timezone.utc))
+    channel = Channel(
+        type=typ,
+        shift_id=shift_id,
+        marker_id=marker_id,
+        created_at=datetime.now(timezone.utc),
+    )
     db.session.add(channel)
     db.session.commit()
 
@@ -116,12 +128,21 @@ def api_create_channel():
             continue
         if not member_type or not member_id:
             continue
-        cm = ChannelMember(channel_id=channel.id, member_type=member_type, member_id=member_id)
+        cm = ChannelMember(
+            channel_id=channel.id, member_type=member_type, member_id=member_id
+        )
         db.session.add(cm)
     if members:
         db.session.commit()
 
-    return jsonify({"id": channel.id, "type": channel.type, "shift_id": channel.shift_id, "marker_id": channel.marker_id}), 201
+    return jsonify(
+        {
+            "id": channel.id,
+            "type": channel.type,
+            "shift_id": channel.shift_id,
+            "marker_id": channel.marker_id,
+        }
+    ), 201
 
 
 @bp.post("/send")
@@ -162,16 +183,22 @@ def api_chat_send():
     # message and do NOT broadcast again.
     if client_msg_id:
         try:
-            existing = Message.query.filter_by(
-                channel_id=channel.id,
-                sender_type=sender_type,
-                sender_id=sender_id,
-                client_msg_id=client_msg_id,
-            ).order_by(Message.created_at.desc()).first()
+            existing = (
+                Message.query.filter_by(
+                    channel_id=channel.id,
+                    sender_type=sender_type,
+                    sender_id=sender_id,
+                    client_msg_id=client_msg_id,
+                )
+                .order_by(Message.created_at.desc())
+                .first()
+            )
             if existing:
                 return jsonify(existing.to_dict()), 200
         except Exception:
-            current_app.logger.debug("Failed to check idempotency for chat2 send", exc_info=True)
+            current_app.logger.debug(
+                "Failed to check idempotency for chat2 send", exc_info=True
+            )
 
     msg = Message(
         channel_id=channel.id,
@@ -294,15 +321,25 @@ def api_chat_mark_read():
     channel_id: str = str(payload.get("channel_id") or "").strip()
     last_id: str = str(payload.get("last_read_message_id") or "").strip()
     if not channel_id or not last_id:
-        return jsonify({"error": "channel_id and last_read_message_id are required"}), 400
+        return jsonify(
+            {"error": "channel_id and last_read_message_id are required"}
+        ), 400
     channel = Channel.query.filter_by(id=channel_id).first()
     if not channel:
         return jsonify({"error": "channel not found"}), 404
     sender_type, sender_id = _get_current_user()
-    cm = ChannelMember.query.filter_by(channel_id=channel_id, member_type=sender_type, member_id=sender_id).first()
+    cm = ChannelMember.query.filter_by(
+        channel_id=channel_id, member_type=sender_type, member_id=sender_id
+    ).first()
     now = datetime.now(timezone.utc)
     if not cm:
-        cm = ChannelMember(channel_id=channel_id, member_type=sender_type, member_id=sender_id, last_read_message_id=last_id, last_read_at=now)
+        cm = ChannelMember(
+            channel_id=channel_id,
+            member_type=sender_type,
+            member_id=sender_id,
+            last_read_message_id=last_id,
+            last_read_at=now,
+        )
         db.session.add(cm)
     else:
         cm.last_read_message_id = last_id
@@ -404,16 +441,22 @@ def api_chat_upload_media():
     # return existing message and do not create duplicates.
     if client_msg_id:
         try:
-            existing = Message.query.filter_by(
-                channel_id=channel_id,
-                sender_type=sender_type,
-                sender_id=sender_id,
-                client_msg_id=client_msg_id,
-            ).order_by(Message.created_at.desc()).first()
+            existing = (
+                Message.query.filter_by(
+                    channel_id=channel_id,
+                    sender_type=sender_type,
+                    sender_id=sender_id,
+                    client_msg_id=client_msg_id,
+                )
+                .order_by(Message.created_at.desc())
+                .first()
+            )
             if existing:
                 return jsonify(existing.to_dict()), 200
         except Exception:
-            current_app.logger.debug("Failed to check idempotency for chat2 upload", exc_info=True)
+            current_app.logger.debug(
+                "Failed to check idempotency for chat2 upload", exc_info=True
+            )
     # Rate limit for uploads
     upload_window = float(current_app.config.get("CHAT2_UPLOAD_RATE_WINDOW_SEC", 60.0))
     upload_limit = int(current_app.config.get("CHAT2_UPLOAD_RATE_LIMIT", 5))
@@ -618,7 +661,12 @@ def api_chat_register_push():
         existing.member_id = sender_id
         db.session.commit()
         return jsonify({"status": "updated", "id": existing.id})
-    pt = PushToken(member_type=sender_type, member_id=sender_id, token=token, created_at=datetime.now(timezone.utc))
+    pt = PushToken(
+        member_type=sender_type,
+        member_id=sender_id,
+        token=token,
+        created_at=datetime.now(timezone.utc),
+    )
     db.session.add(pt)
     db.session.commit()
     return jsonify({"status": "registered", "id": pt.id}), 201
@@ -660,25 +708,34 @@ def api_chat_channels():
     qs = Channel.query.order_by(Channel.last_message_at.desc().nullslast()).limit(limit)
     res: List[Dict[str, Any]] = []
     for ch in qs:
-        last_msg = Message.query.filter_by(channel_id=ch.id).order_by(Message.created_at.desc()).first()
+        last_msg = (
+            Message.query.filter_by(channel_id=ch.id)
+            .order_by(Message.created_at.desc())
+            .first()
+        )
         if last_msg:
             preview = last_msg.text or (last_msg.kind or "")
         else:
             preview = None
         # Подсчёт непрочитанных для текущего пользователя (исключая его же сообщения)
         sender_type, sender_id = _get_current_user()
-        unread = _unread_count_for_member(ch.id, sender_type, sender_id, exclude_self=True)
-        res.append({
-            "id": ch.id,
-            "type": ch.type,
-            "shift_id": ch.shift_id,
-            "marker_id": ch.marker_id,
-            "last_message_at": ch.last_message_at.isoformat() if ch.last_message_at else None,
-            "preview": preview,
-            "unread": unread,
-        })
+        unread = _unread_count_for_member(
+            ch.id, sender_type, sender_id, exclude_self=True
+        )
+        res.append(
+            {
+                "id": ch.id,
+                "type": ch.type,
+                "shift_id": ch.shift_id,
+                "marker_id": ch.marker_id,
+                "last_message_at": ch.last_message_at.isoformat()
+                if ch.last_message_at
+                else None,
+                "preview": preview,
+                "unread": unread,
+            }
+        )
     return jsonify(res)
-
 
 
 @bp.get("/unread_for_incidents")
@@ -688,7 +745,8 @@ def api_chat_unread_for_incidents():
     Запрос: /api/chat2/unread_for_incidents?ids=1,2,3
     Ответ: {"1": 3, "2": 0}
 
-    Важно: считаем непрочитанными только сообщения, отправленные НЕ текущим пользователем.
+    Важно: считаем непрочитанными только сообщения,
+    отправленные НЕ текущим пользователем.
     """
     require_admin("viewer")
 
@@ -714,15 +772,21 @@ def api_chat_unread_for_incidents():
     if not ids:
         return jsonify(out), 200
 
-    channels = Channel.query.filter(Channel.type == "incident", Channel.marker_id.in_(ids)).all()
-    by_marker: Dict[int, Channel] = {int(ch.marker_id): ch for ch in channels if ch.marker_id is not None}
+    channels = Channel.query.filter(
+        Channel.type == "incident", Channel.marker_id.in_(ids)
+    ).all()
+    by_marker: Dict[int, Channel] = {
+        int(ch.marker_id): ch for ch in channels if ch.marker_id is not None
+    }
 
     for iid in ids:
         ch = by_marker.get(int(iid))
         if not ch:
             out[str(iid)] = 0
             continue
-        out[str(iid)] = _unread_count_for_member(ch.id, sender_type, sender_id, exclude_self=True)
+        out[str(iid)] = _unread_count_for_member(
+            ch.id, sender_type, sender_id, exclude_self=True
+        )
 
     return jsonify(out), 200
 
@@ -758,15 +822,21 @@ def api_chat_unread_for_shifts():
     if not ids:
         return jsonify(out), 200
 
-    channels = Channel.query.filter(Channel.type == "shift", Channel.shift_id.in_(ids)).all()
-    by_shift: Dict[int, Channel] = {int(ch.shift_id): ch for ch in channels if ch.shift_id is not None}
+    channels = Channel.query.filter(
+        Channel.type == "shift", Channel.shift_id.in_(ids)
+    ).all()
+    by_shift: Dict[int, Channel] = {
+        int(ch.shift_id): ch for ch in channels if ch.shift_id is not None
+    }
 
     for sid in ids:
         ch = by_shift.get(int(sid))
         if not ch:
             out[str(sid)] = 0
             continue
-        out[str(sid)] = _unread_count_for_member(ch.id, sender_type, sender_id, exclude_self=True)
+        out[str(sid)] = _unread_count_for_member(
+            ch.id, sender_type, sender_id, exclude_self=True
+        )
 
     return jsonify(out), 200
 
@@ -790,7 +860,9 @@ def api_chat_ensure_shift_channel():
     ch = Channel.query.filter_by(type="shift", shift_id=shift_id_int).first()
     created = False
     if not ch:
-        ch = Channel(type="shift", shift_id=shift_id_int, created_at=datetime.now(timezone.utc))
+        ch = Channel(
+            type="shift", shift_id=shift_id_int, created_at=datetime.now(timezone.utc)
+        )
         db.session.add(ch)
         db.session.commit()
         created = True
@@ -800,7 +872,9 @@ def api_chat_ensure_shift_channel():
         mid = str(m.get("member_id") or "").strip()
         if not mt or not mid:
             continue
-        exists = ChannelMember.query.filter_by(channel_id=ch.id, member_type=mt, member_id=mid).first()
+        exists = ChannelMember.query.filter_by(
+            channel_id=ch.id, member_type=mt, member_id=mid
+        ).first()
         if not exists:
             cm = ChannelMember(channel_id=ch.id, member_type=mt, member_id=mid)
             db.session.add(cm)
@@ -815,7 +889,8 @@ def api_chat_ensure_incident_channel():
 
     Ожидает JSON:
       - ``marker_id`` — идентификатор инцидента (обязателен);
-      - ``members`` — список участников с полями ``member_type`` и ``member_id`` (необязательно).
+      - ``members`` — список участников с полями
+        ``member_type`` и ``member_id`` (необязательно).
 
     Если канал существует, возвращает его ID. При создании канала добавляет
     указанных участников.
@@ -830,7 +905,11 @@ def api_chat_ensure_incident_channel():
         return jsonify({"error": "marker_id must be integer"}), 400
     ch = Channel.query.filter_by(type="incident", marker_id=marker_id_int).first()
     if not ch:
-        ch = Channel(type="incident", marker_id=marker_id_int, created_at=datetime.now(timezone.utc))
+        ch = Channel(
+            type="incident",
+            marker_id=marker_id_int,
+            created_at=datetime.now(timezone.utc),
+        )
         db.session.add(ch)
         db.session.commit()
     members = payload.get("members") or []
@@ -842,7 +921,9 @@ def api_chat_ensure_incident_channel():
             continue
         if not mtype or not mid:
             continue
-        existing = ChannelMember.query.filter_by(channel_id=ch.id, member_type=mtype, member_id=mid).first()
+        existing = ChannelMember.query.filter_by(
+            channel_id=ch.id, member_type=mtype, member_id=mid
+        ).first()
         if not existing:
             cm = ChannelMember(channel_id=ch.id, member_type=mtype, member_id=mid)
             db.session.add(cm)
@@ -853,12 +934,14 @@ def api_chat_ensure_incident_channel():
 
 @bp.post("/ensure_dm_channel")
 def api_chat_ensure_dm_channel():
-    """Получить или создать direct message (DM) канал между администратором и устройством.
+    """Получить или создать direct message (DM) канал
+    между администратором и устройством.
 
     Ожидает JSON:
       - ``device_id`` — идентификатор устройства (обязателен).
 
-    Если канал DM с указанным устройством и текущим админом существует, возвращает его ID.
+    Если канал DM с указанным устройством и текущим админом
+    существует, возвращает его ID.
     Иначе создаёт новый канал и добавляет двух участников.
     """
     require_admin("editor")
@@ -900,10 +983,15 @@ def api_chat_admin_purge():
     days = payload.get("days")
     dry_run = bool(payload.get("dry_run"))
     try:
-        days_int = int(days) if days is not None else int(current_app.config.get("CHAT2_RETENTION_DAYS", 90))
+        days_int = (
+            int(days)
+            if days is not None
+            else int(current_app.config.get("CHAT2_RETENTION_DAYS", 90))
+        )
     except Exception:
         days_int = int(current_app.config.get("CHAT2_RETENTION_DAYS", 90))
     from datetime import timedelta, timezone
+
     cutoff = datetime.now(timezone.utc) - timedelta(days=days_int)
     old_msgs = Message.query.filter(Message.created_at < cutoff).all()
     count = len(old_msgs)
@@ -930,4 +1018,5 @@ def api_chat_metrics():
     """Метрики chat2 в формате JSON."""
     require_admin("viewer")
     from .metrics import snapshot as chat_snapshot
+
     return jsonify(chat_snapshot())

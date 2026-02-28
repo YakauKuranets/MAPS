@@ -36,7 +36,7 @@ class AsyncProxyPool:
                 else:
                     proxy.failures += 1
                     return False
-        except:
+        except Exception:
             proxy.failures += 1
             return False
 

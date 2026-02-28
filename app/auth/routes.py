@@ -9,7 +9,12 @@ helpers.require_admin().
 from datetime import datetime, timedelta, timezone
 
 from compat_flask import Response, abort, jsonify, request, session, current_app
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
+from flask_jwt_extended import (
+    create_access_token,
+    create_refresh_token,
+    get_jwt_identity,
+    jwt_required,
+)
 
 from ..audit.logger import log_admin_action
 from ..security.rate_limit import check_rate_limit
@@ -59,11 +64,25 @@ def login() -> Response:
 
     # --- Rate limit ---
     try:
-        ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown").split(",")[0].strip()
+        ip = (
+            request.headers.get("X-Forwarded-For")
+            or request.remote_addr
+            or "unknown"
+        ).split(",")[0].strip()
         limit = int(current_app.config.get("RATE_LIMIT_LOGIN_PER_MINUTE", 10))
-        ok, info = check_rate_limit(bucket="login", ident=ip, limit=limit, window_seconds=60)
+        ok, info = check_rate_limit(
+            bucket="login",
+            ident=ip,
+            limit=limit,
+            window_seconds=60,
+        )
         if not ok:
-            return jsonify(error="rate_limited", limit=info.limit, remaining=info.remaining, reset_in=info.reset_in), 429
+            return jsonify(
+                error="rate_limited",
+                limit=info.limit,
+                remaining=info.remaining,
+                reset_in=info.reset_in,
+            ), 429
     except Exception:
         # Никогда не ломаем логин из-за лимитера.
         pass
@@ -87,7 +106,11 @@ def login() -> Response:
     # 2) Легаси-путь: один админ из конфига
     stored_user = current_app.config.get('ADMIN_USERNAME')
     stored_hash = current_app.config.get('ADMIN_PASSWORD_HASH')
-    if username == stored_user and stored_hash and check_password_hash(stored_hash, password):
+    if (
+        username == stored_user
+        and stored_hash
+        and check_password_hash(stored_hash, password)
+    ):
         session['role'] = 'admin'
         session['is_admin'] = True
         session.permanent = True
@@ -113,7 +136,11 @@ def me() -> Response:
     """Текущая сессия (удобно для UI/диагностики)."""
     return jsonify({
         'is_admin': bool(session.get('is_admin')),
-        'role': session.get('admin_level') if session.get('is_admin') else (session.get('role') or 'guest'),
+        'role': (
+            session.get('admin_level')
+            if session.get('is_admin')
+            else (session.get('role') or 'guest')
+        ),
         'username': session.get('admin_username') or session.get('username'),
     }), 200
 
@@ -198,7 +225,10 @@ def auth_login() -> Response:
     user.last_login = datetime.now(timezone.utc)
     db.session.commit()
 
-    access_token = create_access_token(identity=str(user.id), additional_claims={'role': user.role})
+    access_token = create_access_token(
+        identity=str(user.id),
+        additional_claims={'role': user.role},
+    )
     refresh_token = create_refresh_token(identity=str(user.id))
 
     return jsonify({
@@ -229,7 +259,9 @@ def auth_create_api_key() -> Response:
 
     data = request.get_json(silent=True) or {}
     name = (data.get('name') or 'Unnamed client').strip()
-    expires_in_days = int(data.get('expires_in_days') or Config.API_KEY_EXPIRES_DAYS)
+    expires_in_days = int(
+        data.get('expires_in_days') or Config.API_KEY_EXPIRES_DAYS
+    )
 
     api_key = ApiKey(
         key=ApiKey.generate_key(),
@@ -258,7 +290,11 @@ def auth_list_api_keys() -> Response:
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    keys = ApiKey.query.all() if user.role == 'admin' else ApiKey.query.filter_by(user_id=user.id).all()
+    keys = (
+        ApiKey.query.all()
+        if user.role == 'admin'
+        else ApiKey.query.filter_by(user_id=user.id).all()
+    )
     return jsonify([
         {
             'id': k.id,

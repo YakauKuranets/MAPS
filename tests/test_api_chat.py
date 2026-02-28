@@ -2,7 +2,6 @@ import pytest
 
 from app.extensions import db
 from app.models import ChatMessage
-from app.services import chat_service
 
 
 @pytest.fixture(autouse=True)

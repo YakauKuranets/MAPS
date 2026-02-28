@@ -5,7 +5,6 @@ import json
 import time
 from urllib.parse import urlencode
 
-import pytest
 
 from app.realtime import broker as broker_module
 from app.realtime.broker import RedisBroker

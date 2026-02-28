@@ -1,4 +1,3 @@
-import pytest
 from app.models import ChatMessage, db
 
 def _add(client, user_id, text, sender="user"):

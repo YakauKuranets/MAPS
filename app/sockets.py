@@ -73,13 +73,18 @@ async def _handler(websocket, path: str | None = None):
     """Обработчик подключений. Сохраняет websocket в наборе
     подключенных клиентов и ожидает входящих сообщений. При
     отключении удаляет клиента."""
-    # Совместимость websockets<12 (handler(websocket, path)) и websockets>=12 (handler(connection))
+    # Совместимость websockets<12 (handler(websocket, path))
+    # и websockets>=12 (handler(connection))
     try:
         if path is None:
             # websockets>=12: connection.request.path + connection.request.headers
             req = getattr(websocket, "request", None)
             path = getattr(req, "path", None) or getattr(websocket, "path", "/")
-            headers = getattr(req, "headers", None) or getattr(websocket, "request_headers", None) or {}
+            headers = (
+                getattr(req, "headers", None)
+                or getattr(websocket, "request_headers", None)
+                or {}
+            )
         else:
             # websockets<12
             headers = getattr(websocket, "request_headers", None) or {}
@@ -88,7 +93,9 @@ async def _handler(websocket, path: str | None = None):
         path = path or "/"
 
     # Origin check
-    if not _origin_allowed((headers.get("Origin") if hasattr(headers, 'get') else None)):
+    if not _origin_allowed(
+        (headers.get("Origin") if hasattr(headers, "get") else None)
+    ):
         try:
             await websocket.close(code=1008, reason="Origin not allowed")
         finally:
@@ -102,7 +109,11 @@ async def _handler(websocket, path: str | None = None):
             return
     qs = parse_qs(urlparse(path).query)
     token = (qs.get("token") or [None])[0]
-    payload = verify_token(_ws_secret_key, token or "", max_age=_ws_token_ttl) if token else None
+    payload = (
+        verify_token(_ws_secret_key, token or "", max_age=_ws_token_ttl)
+        if token
+        else None
+    )
 
     if not payload:
         try:
@@ -129,13 +140,17 @@ async def _handler(websocket, path: str | None = None):
                 if event == "webrtc_offer":
                     # Админ звонит дежурному
                     target_user_id = str(data.get("target_user_id", ""))
-                    out_msg = json.dumps({
-                        "event": "webrtc_offer",
-                        "data": {
-                            "sdp": data.get("sdp"),
-                            "caller_sid": websocket.sid  # Передаем свой SID, чтобы телефон знал, кому отвечать
-                        }
-                    }, ensure_ascii=False)
+                    out_msg = json.dumps(
+                        {
+                            "event": "webrtc_offer",
+                            "data": {
+                                "sdp": data.get("sdp"),
+                                "caller_sid": websocket.sid,  # Передаем свой SID,
+                                # чтобы телефон знал, кому отвечать
+                            },
+                        },
+                        ensure_ascii=False,
+                    )
 
                     # Ищем устройство дежурного и пересылаем ему Offer
                     for ws in list(connected_clients):
@@ -145,10 +160,10 @@ async def _handler(websocket, path: str | None = None):
                 elif event == "webrtc_answer":
                     # Телефон отвечает админу
                     caller_sid = str(data.get("caller_sid", ""))
-                    out_msg = json.dumps({
-                        "event": "webrtc_answer",
-                        "data": {"sdp": data.get("sdp")}
-                    }, ensure_ascii=False)
+                    out_msg = json.dumps(
+                        {"event": "webrtc_answer", "data": {"sdp": data.get("sdp")}},
+                        ensure_ascii=False,
+                    )
 
                     # Отправляем ответ инициатору (админу) по его SID
                     for ws in list(connected_clients):
@@ -160,21 +175,27 @@ async def _handler(websocket, path: str | None = None):
                     target_user_id = str(data.get("target_user_id", ""))
                     target_sid = str(data.get("target_sid", ""))
 
-                    out_msg = json.dumps({
-                        "event": "webrtc_ice_candidate",
-                        "data": {"candidate": data.get("candidate")}
-                    }, ensure_ascii=False)
+                    out_msg = json.dumps(
+                        {
+                            "event": "webrtc_ice_candidate",
+                            "data": {"candidate": data.get("candidate")},
+                        },
+                        ensure_ascii=False,
+                    )
 
                     # Пересылаем кандидата (либо по SID, либо по User ID)
                     for ws in list(connected_clients):
-                        if (target_sid and getattr(ws, "sid", "") == target_sid) or \
-                           (target_user_id and getattr(ws, "user_id", "") == target_user_id):
+                        if (target_sid and getattr(ws, "sid", "") == target_sid) or (
+                            target_user_id
+                            and getattr(ws, "user_id", "") == target_user_id
+                        ):
                             await ws.send(out_msg)
 
             except json.JSONDecodeError:
                 pass  # Игнорируем не-JSON сообщения
             except Exception as e:
                 import logging
+
                 logging.getLogger("map-v12-sockets").error(f"WS Error: {e}")
 
     finally:
@@ -190,7 +211,7 @@ async def _broadcast(event: str, data: Dict[str, Any]) -> None:
     """
     if not connected_clients:
         return
-    message = json.dumps({'event': event, 'data': data}, ensure_ascii=False)
+    message = json.dumps({"event": event, "data": data}, ensure_ascii=False)
     to_remove: Set[websockets.WebSocketServerProtocol] = set()
     for ws in list(connected_clients):
         try:
@@ -218,8 +239,8 @@ def broadcast_event_sync(event: str, data: Dict[str, Any]) -> None:
     try:
         from .realtime.broker import get_broker
 
-        payload = {'event': event, 'data': data}
-        if get_broker().publish_event('map_updates', payload):
+        payload = {"event": event, "data": data}
+        if get_broker().publish_event("map_updates", payload):
             return
     except Exception:
         pass
@@ -227,6 +248,7 @@ def broadcast_event_sync(event: str, data: Dict[str, Any]) -> None:
     # ASGI hub (если приложение запущено через asgi_realtime)
     try:
         from .realtime.hub import broadcast_sync as asgi_broadcast
+
         asgi_broadcast(event, data)
     except Exception:
         pass
@@ -238,7 +260,7 @@ def broadcast_event_sync(event: str, data: Dict[str, Any]) -> None:
 
 
 def start_socket_server(
-    host: str = '0.0.0.0',
+    host: str = "0.0.0.0",
     port: int = 8765,
     *,
     secret_key: Optional[str] = None,
@@ -255,7 +277,12 @@ def start_socket_server(
     :param host: адрес для прослушивания (по умолчанию 0.0.0.0)
     :param port: порт для прослушивания (по умолчанию 8765)
     """
-    global ws_loop, _ws_secret_key, _ws_token_ttl, _ws_allowed_origins_raw, _ws_allowed_hostnames
+    global \
+        ws_loop, \
+        _ws_secret_key, \
+        _ws_token_ttl, \
+        _ws_allowed_origins_raw, \
+        _ws_allowed_hostnames
     # Настройки безопасности (в dev можно передать через run.py из app.config)
     _ws_secret_key = secret_key
     _ws_token_ttl = int(token_ttl or 600)
@@ -277,22 +304,31 @@ def start_socket_server(
 
         # Redis Pub/Sub (опционально): подписываемся и ретранслируем события клиентам.
         try:
-            from .realtime.broker import MATRIX_NOISE_CHANNEL, get_broker, get_redis_url, matrix_telemetry_stream
+            from .realtime.broker import (
+                MATRIX_NOISE_CHANNEL,
+                get_broker,
+                get_redis_url,
+                matrix_telemetry_stream,
+            )
             import redis.asyncio as redis_async
 
             async def _on_message(payload):
-                ev = payload.get('event')
-                data = payload.get('data')
+                ev = payload.get("event")
+                data = payload.get("data")
                 if isinstance(ev, str) and isinstance(data, dict):
                     await _broadcast(ev, data)
 
-            asyncio.create_task(get_broker().listener('map_updates', _on_message))
-            asyncio.create_task(get_broker().listener(MATRIX_NOISE_CHANNEL, _on_message))
+            asyncio.create_task(get_broker().listener("map_updates", _on_message))
+            asyncio.create_task(
+                get_broker().listener(MATRIX_NOISE_CHANNEL, _on_message)
+            )
 
             redis_url = get_redis_url()
             if redis_url:
                 noise_pub = redis_async.from_url(redis_url, decode_responses=True)
-                asyncio.create_task(matrix_telemetry_stream(noise_pub, channel=MATRIX_NOISE_CHANNEL))
+                asyncio.create_task(
+                    matrix_telemetry_stream(noise_pub, channel=MATRIX_NOISE_CHANNEL)
+                )
         except Exception:
             pass
 

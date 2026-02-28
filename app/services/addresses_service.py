@@ -11,7 +11,7 @@ import os
 import uuid
 
 from io import StringIO
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from compat_flask import current_app
 from sqlalchemy import or_
@@ -28,7 +28,12 @@ def _allowed_file(filename: str) -> bool:
     if not filename or '.' not in filename:
         return False
     ext = filename.rsplit('.', 1)[1].lower()
-    allowed = current_app.config.get('ALLOWED_EXTENSIONS') or {'png', 'jpg', 'jpeg', 'gif'}
+    allowed = current_app.config.get('ALLOWED_EXTENSIONS') or {
+        'png',
+        'jpg',
+        'jpeg',
+        'gif',
+    }
     return ext in allowed
 
 def filter_addresses(

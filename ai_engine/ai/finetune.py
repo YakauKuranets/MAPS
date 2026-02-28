@@ -23,7 +23,9 @@ def _feedback_to_example(target: DiagnosticTarget) -> dict[str, str] | None:
         return None
 
     # Defensive-only dataset schema: context -> improvement recommendation
-    recommendation = (feedback.get("improvement") or feedback.get("recommendation") or "").strip()
+    recommendation = (
+        feedback.get("improvement") or feedback.get("recommendation") or ""
+    ).strip()
     if not recommendation:
         return None
 
@@ -43,9 +45,12 @@ def _feedback_to_example(target: DiagnosticTarget) -> dict[str, str] | None:
 def prepare_finetune_dataset(output_path: str | None = None) -> dict[str, Any]:
     """
     Система автоматического улучшения качества диагностики на основе обратной связи.
-    Собирает успешные defensive-примеры в JSONL-датасет для последующей оптимизации модели.
+    Собирает успешные defensive-примеры в JSONL-датасет
+    для последующей оптимизации модели.
     """
-    output_path = output_path or os.environ.get("AI_FEEDBACK_DATASET_PATH", "/data/ai/diagnostics_feedback.jsonl")
+    output_path = output_path or os.environ.get(
+        "AI_FEEDBACK_DATASET_PATH", "/data/ai/diagnostics_feedback.jsonl"
+    )
     out = _ensure_parent(output_path)
 
     rows = DiagnosticTarget.query.filter(DiagnosticTarget.feedback.isnot(None)).all()
@@ -59,22 +64,38 @@ def prepare_finetune_dataset(output_path: str | None = None) -> dict[str, Any]:
             stream.write(json.dumps(example, ensure_ascii=False) + "\n")
             written += 1
 
-    return {"status": "ok", "dataset": str(out), "total_rows": len(rows), "written_examples": written}
+    return {
+        "status": "ok",
+        "dataset": str(out),
+        "total_rows": len(rows),
+        "written_examples": written,
+    }
 
 
 @shared_task(name="app.ai.finetune.run_finetuning")
 def run_finetuning() -> dict[str, Any]:
     """
-    Запускает внешний процесс статистического улучшения/оптимизации модели по подготовленному датасету.
+    Запускает внешний процесс статистического
+    улучшения/оптимизации модели по подготовленному датасету.
     Скрипт опционален; при отсутствии возвращается диагностический ответ.
     """
-    dataset_path = os.environ.get("AI_FEEDBACK_DATASET_PATH", "/data/ai/diagnostics_feedback.jsonl")
+    dataset_path = os.environ.get(
+        "AI_FEEDBACK_DATASET_PATH", "/data/ai/diagnostics_feedback.jsonl"
+    )
     script_path = os.environ.get("AI_FINETUNE_SCRIPT", "/opt/ai/finetune_llm.py")
 
     if not os.path.exists(dataset_path):
-        return {"status": "skipped", "reason": "dataset_not_found", "dataset": dataset_path}
+        return {
+            "status": "skipped",
+            "reason": "dataset_not_found",
+            "dataset": dataset_path,
+        }
     if not os.path.exists(script_path):
-        return {"status": "skipped", "reason": "script_not_found", "script": script_path}
+        return {
+            "status": "skipped",
+            "reason": "script_not_found",
+            "script": script_path,
+        }
 
     cmd = ["python3", script_path, "--dataset", dataset_path]
     proc = subprocess.run(cmd, capture_output=True, text=True, check=False)

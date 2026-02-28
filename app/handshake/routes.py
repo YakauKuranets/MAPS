@@ -77,7 +77,9 @@ def upload_handshake():
     if not allowed_file(file.filename):
         return jsonify({"error": "File type not allowed"}), 400
 
-    max_size = int(current_app.config.get("HANDSHAKE_MAX_FILE_SIZE_BYTES", 10 * 1024 * 1024))
+    max_size = int(
+        current_app.config.get("HANDSHAKE_MAX_FILE_SIZE_BYTES", 10 * 1024 * 1024)
+    )
     request_size = int(request.content_length or 0)
     if request_size > max_size:
         return jsonify({"error": "File too large", "maxBytes": max_size}), 413
@@ -103,7 +105,9 @@ def upload_handshake():
 
     task_id = str(uuid.uuid4())
     filename = secure_filename(f"{task_id}_{file.filename}")
-    upload_folder = current_app.config.get("HANDSHAKE_UPLOAD_FOLDER", "/data/handshakes")
+    upload_folder = current_app.config.get(
+        "HANDSHAKE_UPLOAD_FOLDER", "/data/handshakes"
+    )
     os.makedirs(upload_folder, exist_ok=True)
     file_path = os.path.join(upload_folder, filename)
     file.save(file_path)
@@ -127,7 +131,9 @@ def upload_handshake():
 
     from celery_worker import run_handshake_task
 
-    run_handshake_task.delay(task_id, file_path, bssid, essid, attack_type, security_type)
+    run_handshake_task.delay(
+        task_id, file_path, bssid, essid, attack_type, security_type
+    )
 
     return jsonify(
         {
@@ -154,8 +160,20 @@ def get_handshake_result(task_id: str):
             "progress": int(analysis.progress or 0),
             "password": analysis.password_found,
             "attackType": analysis.attack_type or "handshake",
-            "estimatedTime": int(analysis.estimated_time or estimate_analysis_time(analysis.security_type or "WPA2", analysis.attack_type or "handshake")),
-            "estimated_time": int(analysis.estimated_time or estimate_analysis_time(analysis.security_type or "WPA2", analysis.attack_type or "handshake")),
+            "estimatedTime": int(
+                analysis.estimated_time
+                or estimate_analysis_time(
+                    analysis.security_type or "WPA2",
+                    analysis.attack_type or "handshake",
+                )
+            ),
+            "estimated_time": int(
+                analysis.estimated_time
+                or estimate_analysis_time(
+                    analysis.security_type or "WPA2",
+                    analysis.attack_type or "handshake",
+                )
+            ),
             "createdAt": created_at,
         }
     )

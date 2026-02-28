@@ -69,7 +69,10 @@ class ApiKey(db.Model):
 
     def is_valid(self) -> bool:
         """Проверяет, действителен ли ключ."""
-        return self.is_active and (self.expires_at is None or self.expires_at > datetime.now(timezone.utc))
+        return self.is_active and (
+            self.expires_at is None
+            or self.expires_at > datetime.now(timezone.utc)
+        )
 
     def __repr__(self) -> str:
         return f"<ApiKey {self.name} ({self.key[:8]}...)>"

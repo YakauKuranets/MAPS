@@ -14,7 +14,6 @@ from typing import Any, Dict, List
 
 from compat_flask import request, jsonify
 
-from ..extensions import db
 from ..models import Address, PendingMarker, PendingHistory
 
 from . import bp
@@ -87,7 +86,12 @@ def admin_addresses():
     limit = max(1, limit)
     query = Address.query
     total = query.count()
-    items = query.order_by(Address.id.desc()).offset((page - 1) * limit).limit(limit).all()
+    items = (
+        query.order_by(Address.id.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
     return jsonify({
         'items': [addr.to_dict() for addr in items],
         'total': total
@@ -130,7 +134,10 @@ def admin_applications():
             'total': total
         })
     # approved or rejected: читаем историю
-    hist_query = PendingHistory.query.filter(PendingHistory.status == status).order_by(PendingHistory.id.desc())
+    hist_query = (
+        PendingHistory.query.filter(PendingHistory.status == status)
+        .order_by(PendingHistory.id.desc())
+    )
     total = hist_query.count()
     hist_items = hist_query.limit(limit).all()
     out: List[Dict[str, Any]] = []
@@ -172,7 +179,11 @@ def admin_application_detail(pid: int):
     if pm:
         return jsonify(pm.to_dict())
     # Ищем запись в истории
-    hist = PendingHistory.query.filter(PendingHistory.pending_id == pid).order_by(PendingHistory.id.desc()).first()
+    hist = (
+        PendingHistory.query.filter(PendingHistory.pending_id == pid)
+        .order_by(PendingHistory.id.desc())
+        .first()
+    )
     if not hist:
         return jsonify({'error': 'not found'}), 404
     item: Dict[str, Any] = {

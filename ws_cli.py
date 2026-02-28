@@ -34,7 +34,10 @@ try:
     import websockets
     import aiohttp
 except ImportError:
-    print("Не установлены зависимости. Пожалуйста, выполните `pip install websockets aiohttp`.")
+    print(
+        "Не установлены зависимости. "
+        "Пожалуйста, выполните `pip install websockets aiohttp`."
+    )
     sys.exit(1)
 
 
@@ -44,7 +47,9 @@ except ImportError:
 # или:
 #   WS_TOKEN=... python ws_cli.py
 _tok = os.environ.get("WS_TOKEN", "").strip()
-WS_URL = os.environ.get("WS_URL") or ("ws://localhost:8765/ws" + (f"?token={_tok}" if _tok else ""))
+WS_URL = os.environ.get("WS_URL") or (
+    "ws://localhost:8765/ws" + (f"?token={_tok}" if _tok else "")
+)
 
 API_BASE = os.environ.get("API_BASE") or "http://localhost:5000/api"
 
@@ -55,7 +60,9 @@ async def listen_to_ws(ws):
         async for message in ws:
             try:
                 data = json.loads(message)
-                print(f"\n[WS] Событие: {data.get('event')}, данные: {data.get('data')}")
+                print(
+                    f"\n[WS] Событие: {data.get('event')}, данные: {data.get('data')}"
+                )
             except json.JSONDecodeError:
                 print(f"\n[WS] Получено текстовое сообщение: {message}")
     except websockets.exceptions.ConnectionClosedOK:
@@ -68,7 +75,9 @@ async def send_chat_message(user_id: str, text: str, session: aiohttp.ClientSess
     """Отправляет сообщение от администратора в чат конкретному пользователю."""
     url = f"{API_BASE}/chat/{user_id}"
     try:
-        async with session.post(url, json={"text": text}, headers={"X-Admin": "1"}) as resp:
+        async with session.post(
+            url, json={"text": text}, headers={"X-Admin": "1"}
+        ) as resp:
             if resp.status == 200:
                 data = await resp.json()
                 print(f"Отправлено: {data}")
@@ -86,31 +95,34 @@ async def main():
         # Создаём HTTP‑сессию для REST запросов
         async with aiohttp.ClientSession() as session:
             while True:
-                print("\nМеню:\n 1 – слушать события\n 2 – отправить сообщение\n 0 – выход")
+                print("\nМеню:\n 1 – слушать события\n 2 – отправить сообщение")
+                print(" 0 – выход")
                 choice = input("Ваш выбор: ").strip()
-                if choice == '1':
+                if choice == "1":
                     print("Нажмите Enter, чтобы прекратить прослушивание.")
                     listener_task = asyncio.create_task(listen_to_ws(ws))
                     # Ожидаем, пока пользователь нажмёт Enter в другом потоке
-                    await asyncio.get_event_loop().run_in_executor(None, sys.stdin.readline)
+                    await asyncio.get_event_loop().run_in_executor(
+                        None, sys.stdin.readline
+                    )
                     listener_task.cancel()
                     try:
                         await listener_task
                     except asyncio.CancelledError:
                         pass
-                elif choice == '2':
+                elif choice == "2":
                     user_id = input("Введите ID пользователя: ").strip()
                     text = input("Введите сообщение: ").strip()
                     if user_id and text:
                         await send_chat_message(user_id, text, session)
-                elif choice == '0':
+                elif choice == "0":
                     print("Выход…")
                     break
                 else:
                     print("Неизвестная команда.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

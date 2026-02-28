@@ -14,6 +14,7 @@ import os
 import shutil
 import re
 import time
+import tempfile
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -22,7 +23,6 @@ from compat_flask import Response, current_app, jsonify, request, session
 from ..helpers import require_admin
 from ..audit.logger import log_admin_action
 from ..models import Address
-from ..extensions import db
 
 from . import bp
 
@@ -195,7 +195,11 @@ def deg2num(lat_deg: float, lon_deg: float, zoom: int) -> tuple:
     lat_rad = math.radians(lat_deg)
     n = 2.0 ** zoom
     xtile = (lon_deg + 180.0) / 360.0 * n
-    ytile = (1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi) / 2.0 * n
+    ytile = (
+        (1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi)
+        / 2.0
+        * n
+    )
     return xtile, ytile
 
 
@@ -286,7 +290,9 @@ def offline_map_stream() -> Response:
     set_name = (request.args.get('set') or '').strip()
     if set_name:
         # оставляем только буквы, цифры, дефис и подчёркивание
-        filtered = ''.join(ch for ch in set_name if ch.isalnum() or ch in ('-', '_')).lower()
+        filtered = ''.join(
+            ch for ch in set_name if ch.isalnum() or ch in ('-', '_')
+        ).lower()
         set_name = filtered or 'download'
     if not set_name:
         set_name = f"{city}_z{zmax_int}"
@@ -353,7 +359,12 @@ def offline_map_stream() -> Response:
                             pass
                     # отправляем прогресс
                     pct = int(done * 100 / total) if total else 100
-                    payload = {'type': 'progress', 'pct': pct, 'done': done, 'total': total}
+                    payload = {
+                        'type': 'progress',
+                        'pct': pct,
+                        'done': done,
+                        'total': total,
+                    }
                     yield f"data: {json.dumps(payload)}\n\n"
         # завершение
         yield 'data: {"type":"done"}\n\n'
@@ -546,7 +557,14 @@ def offline_geocode_files() -> Response:
                     entries = len(data)
         except Exception:
             entries = None
-    return jsonify({'files': files, 'entries': entries, 'size_bytes': size_bytes, 'modified': modified})
+    return jsonify(
+        {
+            'files': files,
+            'entries': entries,
+            'size_bytes': size_bytes,
+            'modified': modified,
+        }
+    )
 
 
 @bp.get('/geocode/entries')
@@ -565,8 +583,17 @@ def offline_geocode_entries() -> Response:
                 data = json.load(fh)
                 if isinstance(data, list):
                     for idx, rec in enumerate(data):
-                        display_name = rec.get('display_name') or rec.get('address') or ''
-                        entries.append({'id': idx, 'display_name': display_name, 'lat': rec.get('lat'), 'lon': rec.get('lon')})
+                        display_name = (
+                            rec.get('display_name') or rec.get('address') or ''
+                        )
+                        entries.append(
+                            {
+                                'id': idx,
+                                'display_name': display_name,
+                                'lat': rec.get('lat'),
+                                'lon': rec.get('lon'),
+                            }
+                        )
         except Exception:
             pass
     return jsonify({'entries': entries})
@@ -654,7 +681,12 @@ def offline_geocode_stream() -> Response:
             # если координаты отсутствуют, пытаемся геокодировать
             if (lat is None or lon is None) and name:
                 try:
-                    params = {'q': name, 'format': 'json', 'limit': 1, 'accept-language': 'ru'}
+                    params = {
+                        'q': name,
+                        'format': 'json',
+                        'limit': 1,
+                        'accept-language': 'ru',
+                    }
                     r = requests.get(
                         'https://nominatim.openstreetmap.org/search',
                         params=params,

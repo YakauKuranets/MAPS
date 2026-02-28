@@ -13,6 +13,7 @@ from .vuln_check import TargetDevice
 
 logger = logging.getLogger("AsyncAuditor")
 
+
 @dataclass
 class AuditAttempt:
     success: bool
@@ -21,15 +22,18 @@ class AuditAttempt:
     response_time: float
     status_code: int
 
+
 class AsyncSecurityAuditor:
-    def __init__(self,
-                 target: TargetDevice,
-                 proxy_pool: AsyncProxyPool,
-                 password_gen: PasswordGenerator,
-                 username: str = 'admin',
-                 auth_type: str = 'basic',
-                 concurrency: int = 50,
-                 log_callback: Optional[Callable] = None):
+    def __init__(
+        self,
+        target: TargetDevice,
+        proxy_pool: AsyncProxyPool,
+        password_gen: PasswordGenerator,
+        username: str = "admin",
+        auth_type: str = "basic",
+        concurrency: int = 50,
+        log_callback: Optional[Callable] = None,
+    ):
         self.target = target
         self.proxy_pool = proxy_pool
         self.password_gen = password_gen
@@ -52,28 +56,38 @@ class AsyncSecurityAuditor:
         for _ in range(self.concurrency):
             await queue.put(None)
 
-    async def _try_auth(self, password: str, proxy: ProxyNode, session: aiohttp.ClientSession) -> tuple[bool, int]:
+    async def _try_auth(
+        self, password: str, proxy: ProxyNode, session: aiohttp.ClientSession
+    ) -> tuple[bool, int]:
         url = self._get_url()
         proxy_url = proxy.url if proxy else None
         timeout = ClientTimeout(total=8)
         try:
-            if self.auth_type == 'basic':
+            if self.auth_type == "basic":
                 auth = BasicAuth(self.username, password)
-                async with session.get(url, auth=auth, proxy=proxy_url, timeout=timeout) as resp:
+                async with session.get(
+                    url, auth=auth, proxy=proxy_url, timeout=timeout
+                ) as resp:
                     return resp.status == 200, resp.status
-            elif self.auth_type == 'digest':
+            elif self.auth_type == "digest":
                 auth = DigestAuth(self.username, password)
-                async with session.get(url, auth=auth, proxy=proxy_url, timeout=timeout) as resp:
+                async with session.get(
+                    url, auth=auth, proxy=proxy_url, timeout=timeout
+                ) as resp:
                     return resp.status == 200, resp.status
             else:  # form
-                data = {'username': self.username, 'password': password}
-                async with session.post(url, data=data, proxy=proxy_url, timeout=timeout) as resp:
+                data = {"username": self.username, "password": password}
+                async with session.post(
+                    url, data=data, proxy=proxy_url, timeout=timeout
+                ) as resp:
                     return resp.status == 200, resp.status
         except Exception as e:
             self.log(f"Ошибка с прокси {proxy.url if proxy else 'none'}: {e}")
             return False, 0
 
-    async def _worker(self, worker_id: int, queue: asyncio.Queue, session: aiohttp.ClientSession):
+    async def _worker(
+        self, worker_id: int, queue: asyncio.Queue, session: aiohttp.ClientSession
+    ):
         while not self.stop_event.is_set():
             pwd = await queue.get()
             if pwd is None:
@@ -107,7 +121,10 @@ class AsyncSecurityAuditor:
             await self.proxy_pool.refresh_pool(session)
             queue = asyncio.Queue(maxsize=self.concurrency * 2)
             producer = asyncio.create_task(self._producer(queue))
-            workers = [asyncio.create_task(self._worker(i, queue, session)) for i in range(self.concurrency)]
+            workers = [
+                asyncio.create_task(self._worker(i, queue, session))
+                for i in range(self.concurrency)
+            ]
             await asyncio.gather(producer, *workers, return_exceptions=True)
             self.stop_event.set()
             for w in workers:

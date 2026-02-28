@@ -55,14 +55,19 @@ def upgrade():
             sa.Column("digest", sa.String(length=64), nullable=True),
         )
 
-    # дополнительные индексы (для некоторых БД index=True внутри create_table не создаёт)
-    if _table_exists(conn, "tracker_alert_notify_log") and not _index_exists(conn, "tracker_alert_notify_log", "ix_tracker_alert_notify_device_kind"):
+    # дополнительные индексы
+    # (для некоторых БД index=True внутри create_table не создаёт)
+    if _table_exists(conn, "tracker_alert_notify_log") and not _index_exists(
+        conn, "tracker_alert_notify_log", "ix_tracker_alert_notify_device_kind"
+    ):
         op.create_index(
             "ix_tracker_alert_notify_device_kind",
             "tracker_alert_notify_log",
             ["device_id", "kind"],
         )
-    if _table_exists(conn, "tracker_alert_notify_log") and not _index_exists(conn, "tracker_alert_notify_log", "ix_tracker_alert_notify_sent_at"):
+    if _table_exists(conn, "tracker_alert_notify_log") and not _index_exists(
+        conn, "tracker_alert_notify_log", "ix_tracker_alert_notify_sent_at"
+    ):
         op.create_index(
             "ix_tracker_alert_notify_sent_at",
             "tracker_alert_notify_log",
@@ -74,8 +79,17 @@ def downgrade():
     conn = op.get_bind()
     if _table_exists(conn, "tracker_alert_notify_log"):
         # drop indexes first
-        if _index_exists(conn, "tracker_alert_notify_log", "ix_tracker_alert_notify_sent_at"):
-            op.drop_index("ix_tracker_alert_notify_sent_at", table_name="tracker_alert_notify_log")
-        if _index_exists(conn, "tracker_alert_notify_log", "ix_tracker_alert_notify_device_kind"):
-            op.drop_index("ix_tracker_alert_notify_device_kind", table_name="tracker_alert_notify_log")
+        if _index_exists(
+            conn, "tracker_alert_notify_log", "ix_tracker_alert_notify_sent_at"
+        ):
+            op.drop_index(
+                "ix_tracker_alert_notify_sent_at", table_name="tracker_alert_notify_log"
+            )
+        if _index_exists(
+            conn, "tracker_alert_notify_log", "ix_tracker_alert_notify_device_kind"
+        ):
+            op.drop_index(
+                "ix_tracker_alert_notify_device_kind",
+                table_name="tracker_alert_notify_log",
+            )
         op.drop_table("tracker_alert_notify_log")

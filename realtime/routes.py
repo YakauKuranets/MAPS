@@ -40,7 +40,11 @@ def get_realtime_token():
     host = request.host  # включает порт если есть
     ws_url_sameport = f"{scheme}://{host}/ws?token={tok}"
 
-    if str(current_app.config.get('REALTIME_DISABLE_SAMEPORT', '0')).lower() in {'1','true','yes'}:
+    if str(current_app.config.get('REALTIME_DISABLE_SAMEPORT', '0')).lower() in {
+        '1',
+        'true',
+        'yes',
+    }:
         ws_url_sameport = None
 
     # отдельный порт: ws(s)://hostname:WS_PORT/ws?token=...

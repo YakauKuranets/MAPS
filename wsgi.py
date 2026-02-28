@@ -9,7 +9,7 @@ Usage:
 from env_loader import load_dotenv_like
 load_dotenv_like()
 
-from app import create_app
-from app.config import ProductionConfig
+from app import create_app  # noqa: E402
+from app.config import ProductionConfig  # noqa: E402
 
 app = create_app(ProductionConfig)

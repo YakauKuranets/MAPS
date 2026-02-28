@@ -2,7 +2,8 @@
 
 Маршруты:
 
-- ``GET /api/realtime/token`` — выдать токен для подключения к WebSocket (через Rust gateway).
+- ``GET /api/realtime/token`` — выдать токен для подключения
+  к WebSocket (через Rust gateway).
 
 Токен выдаётся только администратору (require_admin).
 """

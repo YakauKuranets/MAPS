@@ -12,8 +12,6 @@ import asyncio
 import logging
 import os
 import shlex
-import subprocess
-import sys
 from pathlib import Path
 
 logging.basicConfig(
@@ -28,18 +26,27 @@ LLM_API_URL = os.getenv("LLM_API_URL", "http://localhost:11434/api/generate")
 
 
 class AIMutationEngine:
-    def __init__(self, target_path: str, test_command: str, mutation_description: str | None = None):
+    def __init__(
+        self,
+        target_path: str,
+        test_command: str,
+        mutation_description: str | None = None,
+    ):
         self.target_path = Path(target_path)
         self.test_command = test_command
         self.mutation_description = (
             mutation_description
-            or "внеси логическую ошибку, которая может остаться незамеченной, но нарушит безопасность"
+            or "внеси логическую ошибку, которая может остаться "
+            "незамеченной, но нарушит безопасность"
         )
 
     async def _call_llm(self, code_snippet: str) -> str:
-        prompt = f"""Ты — эксперт по безопасности кода. Задача: внести в приведённый ниже код одну логическую уязвимость, которая:
+        prompt = f"""Ты — эксперт по безопасности кода.
+Задача: внести в приведённый ниже код одну
+логическую уязвимость, которая:
 - может остаться незамеченной при обычном ревью,
-- нарушает безопасность (например, обходит аутентификацию, допускает SQL-инъекцию, неправильно проверяет права),
+- нарушает безопасность (например, обходит аутентификацию,
+  допускает SQL-инъекцию, неправильно проверяет права),
 - не изменяет синтаксис (код должен оставаться валидным),
 - не слишком очевидна.
 
@@ -51,7 +58,9 @@ class AIMutationEngine:
 ```"""
 
         # Local LLM (e.g., Ollama)
-        if LLM_API_URL.startswith("http://localhost") or LLM_API_URL.startswith("http://127.0.0.1"):
+        if LLM_API_URL.startswith("http://localhost") or LLM_API_URL.startswith(
+            "http://127.0.0.1"
+        ):
             import aiohttp
 
             async with aiohttp.ClientSession() as session:
@@ -83,8 +92,14 @@ class AIMutationEngine:
 
         # Deterministic fallback to keep script usable in offline CI environments
         logger.warning("LLM недоступна, применяем детерминированную мутацию fallback")
-        fallback = code_snippet.replace("if not token_is_valid:", "if False:  # AI MUTATION", 1)
-        return fallback if fallback != code_snippet else code_snippet + "\n# AI MUTATION NO-OP\n"
+        fallback = code_snippet.replace(
+            "if not token_is_valid:", "if False:  # AI MUTATION", 1
+        )
+        return (
+            fallback
+            if fallback != code_snippet
+            else code_snippet + "\n# AI MUTATION NO-OP\n"
+        )
 
     async def _send_alert(self, message: str) -> None:
         try:
@@ -115,9 +130,14 @@ class AIMutationEngine:
             stdout, stderr = await process.communicate()
 
             if process.returncode == 0:
-                logger.critical("❌ КРИТИЧЕСКАЯ УЯЗВИМОСТЬ ТЕСТОВ: ИИ-мутация прошла незамеченной!")
+                logger.critical(
+                    "❌ КРИТИЧЕСКАЯ УЯЗВИМОСТЬ ТЕСТОВ: ИИ-мутация прошла незамеченной!"
+                )
                 await self._send_alert(
-                    f"Мутация в {self.target_path} не поймана тестами!\nКоманда: {self.test_command}"
+                    (
+                        f"Мутация в {self.target_path} не поймана тестами!\n"
+                        f"Команда: {self.test_command}"
+                    )
                 )
                 logger.info(stdout.decode("utf-8", errors="ignore"))
                 return False
@@ -139,7 +159,9 @@ async def main() -> int:
     parser = argparse.ArgumentParser(description="AI Mutation Testing")
     parser.add_argument("--target", required=True, help="Путь к файлу для мутации")
     parser.add_argument("--test-cmd", required=True, help="Команда запуска тестов")
-    parser.add_argument("--desc", default="внеси логическую уязвимость", help="Описание мутации")
+    parser.add_argument(
+        "--desc", default="внеси логическую уязвимость", help="Описание мутации"
+    )
     args = parser.parse_args()
 
     engine = AIMutationEngine(args.target, args.test_cmd, args.desc)

@@ -26,8 +26,17 @@ def generate_morning_briefing(intercepted_nodes: int, blocked_attacks: int) -> s
     <head>
         <meta charset="utf-8">
         <style>
-            body { background-color: #0a0a0a; color: #00ffcc; font-family: 'Courier New', monospace; padding: 20px; }
-            h1 { color: #ffaa00; text-transform: uppercase; border-bottom: 1px solid #00ffcc; }
+            body {
+                background-color: #0a0a0a;
+                color: #00ffcc;
+                font-family: 'Courier New', monospace;
+                padding: 20px;
+            }
+            h1 {
+                color: #ffaa00;
+                text-transform: uppercase;
+                border-bottom: 1px solid #00ffcc;
+            }
             h2 { color: #00ffaa; }
             hr { border: 1px solid #336699; }
             .data { font-size: 1.2em; margin: 10px 0; }
@@ -39,8 +48,12 @@ def generate_morning_briefing(intercepted_nodes: int, blocked_attacks: int) -> s
         <h2>CLASSIFIED // EYES ONLY // QUANTUM-RESISTANT</h2>
         <hr>
         <p class="data"><strong>Дата:</strong> {{ date }}</p>
-        <p class="data"><strong>Атак отражено (SOAR/eBPF):</strong> {{ blocked_attacks }}</p>
-        <p class="data"><strong>Узлов аномалий (Neo4j):</strong> {{ intercepted_nodes }}</p>
+        <p class="data">
+            <strong>Атак отражено (SOAR/eBPF):</strong> {{ blocked_attacks }}
+        </p>
+        <p class="data">
+            <strong>Узлов аномалий (Neo4j):</strong> {{ intercepted_nodes }}
+        </p>
         <p class="data"><strong>Статус defensive decoy simulation:</strong> АКТИВЕН</p>
         <p class="data"><strong>Синтетических агентов:</strong> {{ ghost_count }}</p>
         <hr>
@@ -66,7 +79,8 @@ def generate_morning_briefing(intercepted_nodes: int, blocked_attacks: int) -> s
 async def send_briefing_to_command(intercepted_nodes: int, blocked_attacks: int) -> str:
     pdf_path = generate_morning_briefing(intercepted_nodes, blocked_attacks)
     await send_to_admin(
-        f"[TACTICAL_BRIEFING] Новый PDF отчёт: {pdf_path} | nodes={intercepted_nodes} attacks={blocked_attacks}"
+        "[TACTICAL_BRIEFING] Новый PDF отчёт: "
+        f"{pdf_path} | nodes={intercepted_nodes} attacks={blocked_attacks}"
     )
     logger.info("[ГЕНШТАБ] Уведомление о сводке отправлено администратору")
     return pdf_path

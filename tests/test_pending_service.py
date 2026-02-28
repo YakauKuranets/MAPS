@@ -99,8 +99,8 @@ def test_reject_pending_creates_history_and_removes(db_session, monkeypatch):
 
 
 def test_clear_all_pending_marks_cancelled(db_session):
-    p1 = _create_pending("P1")
-    p2 = _create_pending("P2")
+    _create_pending("P1")
+    _create_pending("P2")
 
     result = clear_all_pending()
     assert result["status"] == "ok"

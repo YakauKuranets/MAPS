@@ -23,7 +23,9 @@ def _extract_products(item: dict) -> list[dict]:
             # cpe:2.3:a:vendor:product:version:...
             parts = cpe_uri.split(":")
             if len(parts) >= 6:
-                products.append({"vendor": parts[3], "product": parts[4], "version": parts[5]})
+                products.append(
+                    {"vendor": parts[3], "product": parts[4], "version": parts[5]}
+                )
     return products
 
 
@@ -39,11 +41,15 @@ def update_nvd_cve() -> dict[str, int]:
     created = 0
     updated = 0
     for item in data.get("CVE_Items", []) or []:
-        cve_id = (((item.get("cve") or {}).get("CVE_data_meta") or {}).get("ID") or "").strip()
+        cve_id = (
+            ((item.get("cve") or {}).get("CVE_data_meta") or {}).get("ID") or ""
+        ).strip()
         if not cve_id:
             continue
 
-        desc_data = (((item.get("cve") or {}).get("description") or {}).get("description_data") or [])
+        desc_data = ((item.get("cve") or {}).get("description") or {}).get(
+            "description_data"
+        ) or []
         description = (desc_data[0].get("value") if desc_data else "") or ""
 
         cvss = None
@@ -67,10 +73,22 @@ def update_nvd_cve() -> dict[str, int]:
         db.session.add(record)
 
         if cvss is not None and float(cvss) >= 7.0:
-            affected = ", ".join(
-                sorted({f"{(p.get('vendor') or '').strip()}:{(p.get('product') or '').strip()}" for p in (products or []) if (p.get('vendor') or p.get('product'))})
-            ) or "unknown"
-            send_vulnerability_alerts.delay(cve_id, description[:500], float(cvss), affected)
+            affected = (
+                ", ".join(
+                    sorted(
+                        {
+                            f"{(p.get('vendor') or '').strip()}:"
+                            f"{(p.get('product') or '').strip()}"
+                            for p in (products or [])
+                            if (p.get("vendor") or p.get("product"))
+                        }
+                    )
+                )
+                or "unknown"
+            )
+            send_vulnerability_alerts.delay(
+                cve_id, description[:500], float(cvss), affected
+            )
 
     db.session.commit()
     return {"created": created, "updated": updated}

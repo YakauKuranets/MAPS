@@ -6,7 +6,6 @@
 unittest.mock для подмены запросов, чтобы не делать реальные HTTP‑вызовы.
 Запуск тестов требует asyncio‑совместимого PyTest (pytest‑asyncio).
 """
-import asyncio
 from unittest.mock import patch, MagicMock
 
 import pytest
