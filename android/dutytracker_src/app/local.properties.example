@@ -1,0 +1,9 @@
+## Copy this file to local.properties and adjust sdk.dir for your machine.
+## Do not commit local.properties with machine-specific paths.
+# Linux
+# sdk.dir=/home/<user>/Android/Sdk
+# macOS
+# sdk.dir=/Users/<user>/Library/Android/sdk
+# Windows (use escaped backslashes)
+# sdk.dir=C\\Users\\<user>\\AppData\\Local\\Android\\Sdk
+sdk.dir=/path/to/Android/Sdk
