@@ -1,7 +1,8 @@
 """Open multiple WebSocket clients and keep them alive.
 
 Usage:
-  python ws_clients.py --url "wss://madcommandcentre.org/ws?token=..." --n 20 --minutes 60
+  python ws_clients.py --url "wss://madcommandcentre.org/ws?token=..." \
+      --n 20 --minutes 60
 
 Notes:
 - Requires: pip install websockets
@@ -53,7 +54,10 @@ async def main() -> None:
     args = p.parse_args()
 
     duration_s = max(1, int(args.minutes) * 60)
-    tasks = [asyncio.create_task(_client(i + 1, args.url, duration_s)) for i in range(max(1, args.n))]
+    tasks = [
+        asyncio.create_task(_client(i + 1, args.url, duration_s))
+        for i in range(max(1, args.n))
+    ]
     await asyncio.gather(*tasks)
 
 

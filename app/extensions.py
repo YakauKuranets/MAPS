@@ -26,16 +26,20 @@ celery_app = Celery(__name__)
 jwt = JWTManager()
 _redis_client_instance = None
 
+
 def get_redis_client():
     global _redis_client_instance
     if _redis_client_instance is not None:
         return _redis_client_instance
     try:
-        _redis_client_instance = redis.from_url(settings.redis_url, decode_responses=True)
+        _redis_client_instance = redis.from_url(
+            settings.redis_url, decode_responses=True
+        )
         _redis_client_instance.ping()
         return _redis_client_instance
     except Exception:
         return None
+
 
 redis_client = None  # Use get_redis_client() for lazy safe access
 
@@ -68,7 +72,9 @@ def init_auth(app: Flask) -> None:
     from itsdangerous import URLSafeTimedSerializer
 
     secret = app.config.get("JWT_SECRET_KEY") or app.config.get("SECRET_KEY")
-    app.extensions["jwt_serializer"] = URLSafeTimedSerializer(secret_key=secret, salt="auth-jwt")
+    app.extensions["jwt_serializer"] = URLSafeTimedSerializer(
+        secret_key=secret, salt="auth-jwt"
+    )
 
 
 def init_extensions(app: Flask) -> None:

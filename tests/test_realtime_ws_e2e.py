@@ -31,7 +31,9 @@ def _wait_http(url: str, timeout_sec: float = 10.0) -> None:
         except Exception as e:
             last_err = e
         time.sleep(0.25)
-    raise AssertionError(f"Server did not become ready: {url}. Last error: {last_err!r}")
+    raise AssertionError(
+        f"Server did not become ready: {url}. Last error: {last_err!r}"
+    )
 
 
 def _extract_csrf(html: str) -> str:
@@ -80,7 +82,9 @@ def test_ws_receives_chat_message(tmp_path):
 
         s = requests.Session()
         # login (CSRF exempt)
-        r = s.post(f"{base}/login", json={"username": "admin", "password": "secret"}, timeout=5)
+        r = s.post(
+            f"{base}/login", json={"username": "admin", "password": "secret"}, timeout=5
+        )
         assert r.status_code == 200
 
         # get csrf from admin page

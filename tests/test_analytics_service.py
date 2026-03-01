@@ -22,9 +22,15 @@ def test_build_summary_with_data(db_session):
     now = datetime.utcnow()
     old = now - timedelta(days=30)
 
-    a1 = Address(name="A1", lat=1.0, lon=1.0, category="cat1", status="open", created_at=now)
-    a2 = Address(name="A2", lat=2.0, lon=2.0, category="cat1", status="closed", created_at=old)
-    a3 = Address(name="A3", lat=3.0, lon=3.0, category="cat2", status="open", created_at=now)
+    a1 = Address(
+        name="A1", lat=1.0, lon=1.0, category="cat1", status="open", created_at=now
+    )
+    a2 = Address(
+        name="A2", lat=2.0, lon=2.0, category="cat1", status="closed", created_at=old
+    )
+    a3 = Address(
+        name="A3", lat=3.0, lon=3.0, category="cat2", status="open", created_at=now
+    )
     db.session.add_all([a1, a2, a3])
 
     p1 = PendingMarker(name="P1", lat=1.0, lon=1.0)

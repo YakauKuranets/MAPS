@@ -18,10 +18,12 @@ from app.sandbox.wasm_runner import sandbox_engine
 logger = logging.getLogger(__name__)
 
 _ENV_KEY = os.getenv("IMAGE_VALIDATOR_KEY")
-_ENCRYPTION_KEY = (_ENV_KEY.encode("utf-8") if _ENV_KEY else Fernet.generate_key())
+_ENCRYPTION_KEY = _ENV_KEY.encode("utf-8") if _ENV_KEY else Fernet.generate_key()
 _cipher = Fernet(_ENCRYPTION_KEY)
 
-WASM_EXIF_PARSER_PATH = os.getenv("WASM_EXIF_PARSER_PATH", "/app/bin/exif_parser_secure.wasm")
+WASM_EXIF_PARSER_PATH = os.getenv(
+    "WASM_EXIF_PARSER_PATH", "/app/bin/exif_parser_secure.wasm"
+)
 
 
 def _normalize_coordinates(value):
@@ -84,7 +86,10 @@ def _parse_exif_with_python(image_path: str) -> dict:
 
 async def validate_and_extract_exif_secure(file: UploadFile) -> dict:
     """Безопасный анализ подозрительных изображений через WebAssembly."""
-    logger.warning("[OSINT_VISION] Передача файла %s в изолированную Wasm-песочницу.", file.filename)
+    logger.warning(
+        "[OSINT_VISION] Передача файла %s в изолированную Wasm-песочницу.",
+        file.filename,
+    )
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
         content = await file.read()
@@ -117,7 +122,8 @@ def validate_image_integrity(image_path: str) -> dict:
         if parsed.get("error"):
             return {"valid": False, "issues": [parsed.get("error")], "metadata": {}}
 
-        # Until wasm parser returns structured metadata, fallback for metadata extraction.
+        # Until wasm parser returns structured metadata,
+        # fallback for metadata extraction.
         return _parse_exif_with_python(image_path)
     except Exception as exc:
         logger.error("[VALIDATOR] Ошибка: %s", exc)

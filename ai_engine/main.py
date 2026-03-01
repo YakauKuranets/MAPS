@@ -55,13 +55,20 @@ async def analyze_threat(payload: ThreatContext):
             {"raw_text": payload.raw_text, "source": payload.source}
         )
         result = await analyze_threat_context(payload.raw_text, payload.source)
-        return {"status": "success", "analysis": result, "ml_prediction": ml_prediction, "model_version": threat_brain.version}
+        return {
+            "status": "success",
+            "analysis": result,
+            "ml_prediction": ml_prediction,
+            "model_version": threat_brain.version,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/v1/vision/compare_faces")
-async def compare_faces(known_image: UploadFile = File(...), unknown_image: UploadFile = File(...)):
+async def compare_faces(
+    known_image: UploadFile = File(...), unknown_image: UploadFile = File(...)
+):
     """Тяжелая биометрия на GPU."""
     try:
         tmp_dir = Path("/tmp")

@@ -21,7 +21,9 @@ except Exception:  # pragma: no cover - optional dependency
 class CANBusAnalyzer:
     """Пассивный мониторинг и анализ CAN-трафика (без активного воздействия)."""
 
-    def __init__(self, interface: str = "socketcan", channel: str = "can0", bitrate: int = 500000):
+    def __init__(
+        self, interface: str = "socketcan", channel: str = "can0", bitrate: int = 500000
+    ):
         self.interface = interface
         self.channel = channel
         self.bitrate = bitrate
@@ -37,7 +39,9 @@ class CANBusAnalyzer:
             return False
 
         try:
-            self.bus = can.Bus(interface=self.interface, channel=self.channel, bitrate=self.bitrate)
+            self.bus = can.Bus(
+                interface=self.interface, channel=self.channel, bitrate=self.bitrate
+            )
         except Exception as exc:
             logger.error("Failed to initialize CAN bus: %s", exc)
             self.bus = None
@@ -74,13 +78,19 @@ class CANBusAnalyzer:
         return {
             "uds_supported": False,
             "found_services": [],
-            "note": "Пассивный режим: активные UDS-проверки в данной версии не выполняются.",
+            "note": (
+                "Пассивный режим: активные UDS-проверки в данной версии не выполняются."
+            ),
         }
 
     def get_statistics(self) -> dict[str, Any]:
         """Возвращает статистику собранных сообщений."""
         if not self.messages:
-            return {"total_messages": 0, "unique_ids": 0, "bus_load_estimate": "unknown"}
+            return {
+                "total_messages": 0,
+                "unique_ids": 0,
+                "bus_load_estimate": "unknown",
+            }
 
         unique_ids = len({msg.get("arbitration_id") for msg in self.messages})
         total_messages = len(self.messages)

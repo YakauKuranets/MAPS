@@ -43,7 +43,9 @@ def generate_report(task_id: int, output_path: str) -> str:
     c.drawString(50, height - 50, f"Диагностический отчёт: {task.identifier}")
 
     c.setFont("Helvetica", 10)
-    c.drawString(50, height - 70, f"Дата: {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    c.drawString(
+        50, height - 70, f"Дата: {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    )
     c.drawString(50, height - 86, f"Тип объекта мониторинга: {task.target_type}")
     c.drawString(50, height - 102, f"Статус: {task.status}")
 
@@ -91,7 +93,9 @@ def generate_report(task_id: int, output_path: str) -> str:
     model = context.get("model") if isinstance(context, dict) else None
     if model:
         cves = CVE.query.filter(CVE.affected_products.isnot(None)).all()
-        matched = [cve for cve in cves if model.lower() in str(cve.affected_products).lower()]
+        matched = [
+            cve for cve in cves if model.lower() in str(cve.affected_products).lower()
+        ]
         if matched:
             if y < 260:
                 c.showPage()
@@ -101,7 +105,13 @@ def generate_report(task_id: int, output_path: str) -> str:
             y -= 20
             data = [["CVE ID", "CVSS", "Описание"]]
             for cve in matched[:10]:
-                data.append([cve.id, _safe_value(cve.cvss_score), (_safe_value(cve.description))[:80]])
+                data.append(
+                    [
+                        cve.id,
+                        _safe_value(cve.cvss_score),
+                        (_safe_value(cve.description))[:80],
+                    ]
+                )
 
             table = Table(data, colWidths=[90, 50, 360])
             table.setStyle(

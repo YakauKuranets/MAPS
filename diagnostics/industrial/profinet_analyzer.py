@@ -31,13 +31,17 @@ class ProfinetAnalyzer:
             logger.warning("scapy is not installed; Profinet discovery unavailable")
             return []
 
-        packet = Ether(dst=self.DCP_DST_MAC, type=self.ETHERTYPE_PN_DCP) / Raw(load=self._build_dcp_identify())
+        packet = Ether(dst=self.DCP_DST_MAC, type=self.ETHERTYPE_PN_DCP) / Raw(
+            load=self._build_dcp_identify()
+        )
 
         try:
             responses = sniff(
                 iface=self.interface,
                 timeout=max(1, int(timeout)),
-                started_callback=lambda: sendp(packet, iface=self.interface, verbose=False),
+                started_callback=lambda: sendp(
+                    packet, iface=self.interface, verbose=False
+                ),
                 store=True,
             )
         except Exception:

@@ -24,5 +24,7 @@ def dispatch_actions_keyboard() -> InlineKeyboardMarkup:
 def terminal_webapp_keyboard(url: str) -> InlineKeyboardMarkup:
     """Inline button that opens Telegram Mini App terminal."""
     return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="Открыть Терминал", web_app=WebAppInfo(url=url))]]
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Открыть Терминал", web_app=WebAppInfo(url=url))]
+        ]
     )

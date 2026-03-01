@@ -68,7 +68,9 @@ def upgrade():
             sa.Column("sender_id", sa.String(length=64), nullable=False),
             sa.Column("client_msg_id", sa.String(length=64), nullable=True),
             sa.Column("text", sa.Text(), nullable=True),
-            sa.Column("kind", sa.String(length=16), nullable=False, server_default="text"),
+            sa.Column(
+                "kind", sa.String(length=16), nullable=False, server_default="text"
+            ),
             sa.Column("created_at", sa.DateTime(), nullable=False),
             sa.Column("edited_at", sa.DateTime(), nullable=True),
             sa.Column("deleted_at", sa.DateTime(), nullable=True),
@@ -124,7 +126,9 @@ def downgrade():
     if _table_exists(conn, "chat2_messages"):
         # Drop index first
         if _index_exists(conn, "chat2_messages", "ix_chat2_messages_channel_created"):
-            op.drop_index("ix_chat2_messages_channel_created", table_name="chat2_messages")
+            op.drop_index(
+                "ix_chat2_messages_channel_created", table_name="chat2_messages"
+            )
         op.drop_table("chat2_messages")
     if _table_exists(conn, "chat2_channels"):
         op.drop_table("chat2_channels")

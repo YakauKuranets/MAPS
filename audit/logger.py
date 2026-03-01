@@ -18,7 +18,7 @@ def generate_hash(data_dict: dict, prev_hash: str) -> str:
     # Сортируем ключи, чтобы JSON всегда собирался одинаково
     data_string = json.dumps(data_dict, sort_keys=True, ensure_ascii=False)
     raw_string = f"{prev_hash}|{data_string}"
-    return hashlib.sha256(raw_string.encode('utf-8')).hexdigest()
+    return hashlib.sha256(raw_string.encode("utf-8")).hexdigest()
 
 
 def log_admin_action(action: str, payload: Optional[Dict[str, Any]] = None) -> None:
@@ -32,13 +32,15 @@ def log_admin_action(action: str, payload: Optional[Dict[str, Any]] = None) -> N
         actor = None
         role = None
         if admin:
-            actor = getattr(admin, 'username', None) or getattr(admin, 'login', None)
-            role = getattr(admin, 'role', None) or getattr(admin, 'level', None)
-        actor = actor or session.get('admin_username') or session.get('username')
-        role = role or session.get('admin_level') or session.get('role')
+            actor = getattr(admin, "username", None) or getattr(admin, "login", None)
+            role = getattr(admin, "role", None) or getattr(admin, "level", None)
+        actor = actor or session.get("admin_username") or session.get("username")
+        role = role or session.get("admin_level") or session.get("role")
 
         # IP: учитываем reverse-proxy
-        ip = (request.headers.get('X-Forwarded-For') or '').split(',')[0].strip() or request.remote_addr
+        ip = (request.headers.get("X-Forwarded-For") or "").split(",")[
+            0
+        ].strip() or request.remote_addr
 
         # --- 🛡️ НАЧАЛО БЛОКА ZERO-TRUST ---
         # 1. Получаем хеш последней записи
@@ -48,7 +50,7 @@ def log_admin_action(action: str, payload: Optional[Dict[str, Any]] = None) -> N
         if last_log and last_log.payload_json:
             try:
                 last_payload = json.loads(last_log.payload_json)
-                prev_hash = last_payload.get('_crypto_signature', prev_hash)
+                prev_hash = last_payload.get("_crypto_signature", prev_hash)
             except Exception:
                 pass
 
@@ -60,7 +62,7 @@ def log_admin_action(action: str, payload: Optional[Dict[str, Any]] = None) -> N
             "method": str(request.method),
             "path": str(request.path),
             "action": str(action),
-            "payload": payload or {}
+            "payload": payload or {},
         }
 
         # 3. Вычисляем криптографическую подпись этой записи
@@ -68,8 +70,8 @@ def log_admin_action(action: str, payload: Optional[Dict[str, Any]] = None) -> N
 
         # 4. Внедряем подпись и ссылку на предыдущий блок в payload_json
         final_payload = dict(payload) if payload else {}
-        final_payload['_crypto_signature'] = signature
-        final_payload['_prev_hash'] = prev_hash
+        final_payload["_crypto_signature"] = signature
+        final_payload["_prev_hash"] = prev_hash
         # --- 🛡️ КОНЕЦ БЛОКА ZERO-TRUST ---
 
         row = AdminAuditLog(
@@ -110,15 +112,25 @@ def verify_ledger_integrity() -> Tuple[bool, str]:
                 except Exception:
                     pass
 
-            stored_signature = payload_dict.get('_crypto_signature')
-            stored_prev_hash = payload_dict.get('_prev_hash', prev_hash)
+            stored_signature = payload_dict.get("_crypto_signature")
+            stored_prev_hash = payload_dict.get("_prev_hash", prev_hash)
 
             # 1. Проверяем не порвана ли цепочка (не удалили ли строку)
             if stored_prev_hash != prev_hash:
-                return False, f"🚨 Нарушение цепочки на ID {log.id}! Ожидался: {prev_hash}, найден: {stored_prev_hash}"
+                return (
+                    False,
+                    (
+                        f"🚨 Нарушение цепочки на ID {log.id}! "
+                        f"Ожидался: {prev_hash}, найден: {stored_prev_hash}"
+                    ),
+                )
 
             # 2. Проверяем, не изменили ли сами данные в строке
-            clean_payload = {k: v for k, v in payload_dict.items() if k not in ['_crypto_signature', '_prev_hash']}
+            clean_payload = {
+                k: v
+                for k, v in payload_dict.items()
+                if k not in ["_crypto_signature", "_prev_hash"]
+            }
 
             data_to_hash = {
                 "actor": str(log.actor),
@@ -127,13 +139,19 @@ def verify_ledger_integrity() -> Tuple[bool, str]:
                 "method": str(log.method),
                 "path": str(log.path),
                 "action": str(log.action),
-                "payload": clean_payload
+                "payload": clean_payload,
             }
 
             calculated_signature = generate_hash(data_to_hash, prev_hash)
 
             if calculated_signature != stored_signature:
-                return False, f"🚨 Данные подменены на ID {log.id}! Подпись не совпадает с содержимым."
+                return (
+                    False,
+                    (
+                        f"🚨 Данные подменены на ID {log.id}! "
+                        "Подпись не совпадает с содержимым."
+                    ),
+                )
 
             prev_hash = stored_signature
 

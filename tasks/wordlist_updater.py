@@ -57,7 +57,9 @@ def _download_to_temp(source: dict) -> tuple[str, str]:
                 return tmp_file.name, url
         except Exception as exc:
             last_error = exc
-            logger.warning("Failed to download %s from %s: %s", source["name"], url, exc)
+            logger.warning(
+                "Failed to download %s from %s: %s", source["name"], url, exc
+            )
     raise RuntimeError(f"All sources failed for {source['name']}: {last_error}")
 
 
@@ -87,7 +89,9 @@ def update_wordlists() -> None:
 
             target_dir = "/data/wordlists"
             os.makedirs(target_dir, exist_ok=True)
-            target_path = os.path.join(target_dir, f"{source['name']}_v{new_version}.txt")
+            target_path = os.path.join(
+                target_dir, f"{source['name']}_v{new_version}.txt"
+            )
 
             if os.path.exists(target_path):
                 os.unlink(target_path)
@@ -113,7 +117,12 @@ def update_wordlists() -> None:
             db.session.add(new_wordlist)
             db.session.commit()
 
-            logger.info("Updated %s to version %s (%s entries)", source["name"], new_version, line_count)
+            logger.info(
+                "Updated %s to version %s (%s entries)",
+                source["name"],
+                new_version,
+                line_count,
+            )
         except Exception as exc:
             logger.error("Failed to update %s: %s", source["name"], exc)
             db.session.rollback()

@@ -20,7 +20,11 @@ class _FakeQuery:
 
 
 def test_send_vulnerability_alerts(monkeypatch):
-    monkeypatch.setattr(delivery.AlertSubscription, "query", _FakeQuery([_FakeSub("a@x"), _FakeSub("b@x")]))
+    monkeypatch.setattr(
+        delivery.AlertSubscription,
+        "query",
+        _FakeQuery([_FakeSub("a@x"), _FakeSub("b@x")]),
+    )
 
     sent = {"count": 0}
 

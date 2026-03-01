@@ -32,7 +32,9 @@ def test_campaign_create_and_track(monkeypatch):
             return None
 
     monkeypatch.setattr("imaplib.IMAP4_SSL", FakeIMAP)
-    stats = mgr.track_results(cid, {"host": "imap.example.com", "port": 993, "username": "u", "password": "p"})
+    stats = mgr.track_results(
+        cid, {"host": "imap.example.com", "port": 993, "username": "u", "password": "p"}
+    )
     assert stats["opened"] >= 2
 
 
@@ -43,11 +45,13 @@ def test_web_scanner_parsers(monkeypatch, tmp_path):
         if "-json" in cmd:
             out = cmd[cmd.index("-o") + 1]
             with open(out, "w", encoding="utf-8") as f:
-                f.write('{"template-id":"t1","info":{"name":"x","severity":"high"},"matched-at":"http://x"}\n')
+                f.write(
+                    '{"template-id":"t1","info":{"name":"x","severity":"high"},"matched-at":"http://x"}\n'
+                )
         else:
             out = cmd[cmd.index("-o") + 1]
             with open(out, "w", encoding="utf-8") as f:
-                f.write('+ OSVDB-1 Test finding\n')
+                f.write("+ OSVDB-1 Test finding\n")
 
     monkeypatch.setattr("subprocess.run", fake_run)
 

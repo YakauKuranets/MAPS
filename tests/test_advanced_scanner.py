@@ -23,8 +23,34 @@ def test_search_by_cve(monkeypatch):
 
     def fake_get(url, params=None, auth=None, timeout=0):
         if "shodan" in url:
-            return _Resp(200, {"matches": [{"ip_str": "1.1.1.1", "port": 443, "location": {"country_name": "DE", "city": "Berlin"}, "org": "Org"}]})
-        return _Resp(200, {"result": {"first_seen": "a", "last_seen": "b", "services": [{"port": 443, "tls": {"version": "TLSv1.3", "cipher_suites": ["X"]}}]}})
+            return _Resp(
+                200,
+                {
+                    "matches": [
+                        {
+                            "ip_str": "1.1.1.1",
+                            "port": 443,
+                            "location": {"country_name": "DE", "city": "Berlin"},
+                            "org": "Org",
+                        }
+                    ]
+                },
+            )
+        return _Resp(
+            200,
+            {
+                "result": {
+                    "first_seen": "a",
+                    "last_seen": "b",
+                    "services": [
+                        {
+                            "port": 443,
+                            "tls": {"version": "TLSv1.3", "cipher_suites": ["X"]},
+                        }
+                    ],
+                }
+            },
+        )
 
     monkeypatch.setattr(scanner.session, "get", fake_get)
     rows = scanner.search_by_cve("CVE-1", country="DE")

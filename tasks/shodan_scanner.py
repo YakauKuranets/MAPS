@@ -5,11 +5,13 @@ import shodan
 from celery import shared_task
 
 from app.extensions import db
-SHODAN_API_KEY = os.environ.get('SHODAN_API_KEY', 'your_key_here')
+
+SHODAN_API_KEY = os.environ.get("SHODAN_API_KEY", "your_key_here")
 
 
 def _global_camera_model():
-    """Lazy import to avoid heavy video package side-effects during worker/test import."""
+    """Lazy import to avoid heavy video package side-effects
+    during worker/test import."""
     from app.video.models import GlobalCamera
 
     return GlobalCamera
@@ -27,15 +29,17 @@ def _build_shodan_client(api_key: str, *, tor_session=None):
 
 
 @shared_task
-def scan_shodan_for_cameras(query='product:"Hikvision" OR product:"Dahua"', limit=100, use_tor=False):
+def scan_shodan_for_cameras(
+    query='product:"Hikvision" OR product:"Dahua"', limit=100, use_tor=False
+):
     """
     Периодическая задача для сбора информации о камерах через Shodan.
     Результаты сохраняются в БД для последующего анализа.
 
     :param use_tor: если True, запросы к Shodan выполняются через Tor SOCKS5 прокси.
     """
-    if not SHODAN_API_KEY or SHODAN_API_KEY == 'your_key_here':
-        return 'Ошибка Shodan: SHODAN_API_KEY не задан'
+    if not SHODAN_API_KEY or SHODAN_API_KEY == "your_key_here":
+        return "Ошибка Shodan: SHODAN_API_KEY не задан"
 
     tor_client = None
     try:
@@ -53,24 +57,24 @@ def scan_shodan_for_cameras(query='product:"Hikvision" OR product:"Dahua"', limi
         )
 
         results = api.search(query, limit=limit)
-        matches = results.get('matches', [])
+        matches = results.get("matches", [])
         for match in matches:
-            ip_value = match.get('ip_str')
+            ip_value = match.get("ip_str")
             if not ip_value:
                 continue
 
             GlobalCamera = _global_camera_model()
             existing = GlobalCamera.query.filter_by(ip=ip_value).first()
             data = {
-                'ip': ip_value,
-                'port': match.get('port', 80),
-                'vendor': match.get('product'),
-                'model': match.get('info'),
-                'country': (match.get('location') or {}).get('country_name'),
-                'city': (match.get('location') or {}).get('city'),
-                'org': match.get('org'),
-                'hostnames': match.get('hostnames', []),
-                'vulnerabilities': match.get('vulns', []),
+                "ip": ip_value,
+                "port": match.get("port", 80),
+                "vendor": match.get("product"),
+                "model": match.get("info"),
+                "country": (match.get("location") or {}).get("country_name"),
+                "city": (match.get("location") or {}).get("city"),
+                "org": match.get("org"),
+                "hostnames": match.get("hostnames", []),
+                "vulnerabilities": match.get("vulns", []),
             }
 
             if existing:

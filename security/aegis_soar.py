@@ -36,7 +36,9 @@ async def block_ip_on_edge(ip_address: str, reason: str = "Aegis Autonomous Bloc
     try:
         addr = ipaddress.ip_address(ip_address)
         if addr.is_private or addr.is_loopback or addr.is_reserved:
-            logger.warning("[AEGIS_SOAR] Пропуск приватного/резервного IP: %s", ip_address)
+            logger.warning(
+                "[AEGIS_SOAR] Пропуск приватного/резервного IP: %s", ip_address
+            )
             return False
     except ValueError:
         logger.error("[AEGIS_SOAR] Невалидный IP-адрес: %s", ip_address)
@@ -47,10 +49,13 @@ async def block_ip_on_edge(ip_address: str, reason: str = "Aegis Autonomous Bloc
         logger.info("[AEGIS_SOAR] IP %s уже заблокирован", ip_address)
         return True
 
-
     if not CF_API_TOKEN or not CF_ZONE_ID:
         logger.error("[AEGIS_SOAR] Токен Cloudflare не настроен. Симуляция блокировки.")
-        logger.warning("[AEGIS_SOAR] [SIMULATION] IP %s заблокирован. Причина: %s", ip_address, reason)
+        logger.warning(
+            "[AEGIS_SOAR] [SIMULATION] IP %s заблокирован. Причина: %s",
+            ip_address,
+            reason,
+        )
         return False
 
     url = f"https://api.cloudflare.com/client/v4/zones/{CF_ZONE_ID}/firewall/access_rules/rules"
@@ -66,15 +71,21 @@ async def block_ip_on_edge(ip_address: str, reason: str = "Aegis Autonomous Bloc
 
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, json=payload, timeout=5.0)
+            response = await client.post(
+                url, headers=headers, json=payload, timeout=5.0
+            )
             if response.status_code == 200:
-                logger.critical("[AEGIS_SOAR] ВНИМАНИЕ! IP %s успешно заблокирован на уровне WAF!", ip_address)
+                logger.critical(
+                    "[AEGIS_SOAR] ВНИМАНИЕ! IP %s успешно заблокирован на уровне WAF!",
+                    ip_address,
+                )
                 register_blocked_attack()
                 _blocked_ips.add(ip_address)
                 # Async Telegram notification
                 if TELEGRAM_ADMIN_NOTIFY:
                     try:
                         from app.bot.notifications import send_to_admin
+
                         await send_to_admin(
                             f"🛡 AEGIS SOAR: IP {ip_address} заблокирован\n"
                             f"Причина: {reason}"
@@ -100,6 +111,7 @@ def block_ip_sync(ip_address: str, reason: str = "Aegis Autonomous Block") -> bo
     if loop and loop.is_running():
         # Already inside an async context — schedule as a task
         import concurrent.futures
+
         with concurrent.futures.ThreadPoolExecutor() as pool:
             future = pool.submit(asyncio.run, block_ip_on_edge(ip_address, reason))
             return future.result(timeout=10)

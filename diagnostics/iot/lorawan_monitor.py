@@ -18,7 +18,12 @@ logger = logging.getLogger(__name__)
 class LoRaWANMonitor:
     """Мониторинг LoRaWAN трафика через внешний sniffer-инструмент."""
 
-    def __init__(self, freq: float = 868.1e6, gain: int = 40, output_file: str = "/tmp/lorawan_dump.txt"):
+    def __init__(
+        self,
+        freq: float = 868.1e6,
+        gain: int = 40,
+        output_file: str = "/tmp/lorawan_dump.txt",
+    ):
         self.freq = freq
         self.gain = gain
         self.output_file = output_file
@@ -38,8 +43,12 @@ class LoRaWANMonitor:
             str(max(1, duration)),
         ]
         try:
-            self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            logger.info("LoRaWAN monitor started (freq=%s, gain=%s)", self.freq, self.gain)
+            self.process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            logger.info(
+                "LoRaWAN monitor started (freq=%s, gain=%s)", self.freq, self.gain
+            )
             return True
         except FileNotFoundError:
             logger.warning("gr-lora_sdr is not installed; LoRaWAN monitor unavailable")

@@ -17,9 +17,21 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task
-def run_security_scan(task_id: int | None, target: str, profile: str, use_proxy: bool = True, context: str | None = None):
+def run_security_scan(
+    task_id: int | None,
+    target: str,
+    profile: str,
+    use_proxy: bool = True,
+    context: str | None = None,
+):
     """Выполняет диагностическую задачу. Для AI_TEST_GEN генерирует сценарий по CVE."""
-    logger.info("Запуск диагностики %s для %s (прокси=%s, context=%s)", profile, target, use_proxy, context)
+    logger.info(
+        "Запуск диагностики %s для %s (прокси=%s, context=%s)",
+        profile,
+        target,
+        use_proxy,
+        context,
+    )
 
     profile_aliases = {"WEB_DIR_ENUM": "WEB_DIR_SCAN", "OSINT_RECON": "OSINT_DEEP"}
     normalized_profile = profile_aliases.get(profile, profile)
@@ -69,7 +81,9 @@ def run_security_scan(task_id: int | None, target: str, profile: str, use_proxy:
     elif normalized_profile == "OSINT_DEEP":
         result["details"] = {"note": "OSINT_DEEP queued (stub)."}
     elif normalized_profile == "PHISHING_SIMULATION":
-        result["details"] = {"note": f"Phishing simulation queued for {context or 'N/A'}"}
+        result["details"] = {
+            "note": f"Phishing simulation queued for {context or 'N/A'}"
+        }
 
     if target_record:
         target_record.result = result

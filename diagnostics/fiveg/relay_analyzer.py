@@ -22,7 +22,9 @@ class RelaySecurityAnalyzer:
     def __init__(self) -> None:
         self.backend = default_backend()
 
-    def analyze_relay_configuration(self, remote_ue_id: str, relay_service_code: str) -> Dict:
+    def analyze_relay_configuration(
+        self, remote_ue_id: str, relay_service_code: str
+    ) -> Dict:
         result = {
             "remote_ue_id": remote_ue_id,
             "relay_service_code": relay_service_code,
@@ -43,7 +45,9 @@ class RelaySecurityAnalyzer:
 
         return result
 
-    def validate_key_derivation(self, knrp: bytes, nonce: bytes, freshness: bytes) -> bool:
+    def validate_key_derivation(
+        self, knrp: bytes, nonce: bytes, freshness: bytes
+    ) -> bool:
         try:
             h = hmac.HMAC(b"5G_KEY_DERIVATION", hashes.SHA256(), backend=self.backend)
             h.update(knrp or b"")

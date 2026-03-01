@@ -7,7 +7,9 @@ from typing import Any
 class MQTTBrokerCheck:
     """Проверка доступности MQTT брокера (без аутентификации/брутфорса)."""
 
-    def check(self, host: str, port: int = 1883, timeout: float = 1.0) -> dict[str, Any]:
+    def check(
+        self, host: str, port: int = 1883, timeout: float = 1.0
+    ) -> dict[str, Any]:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
         try:

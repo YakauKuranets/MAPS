@@ -11,7 +11,12 @@ from app.reports.generator import generate_report
 
 
 @shared_task(name="app.tasks.reports_delivery.send_task_report_email")
-def send_task_report_email(task_id: int, to_emails: list[str], subject: str | None = None, body: str | None = None):
+def send_task_report_email(
+    task_id: int,
+    to_emails: list[str],
+    subject: str | None = None,
+    body: str | None = None,
+):
     """Generate a diagnostic PDF and deliver it to recipients via email."""
     output = f"{tempfile.gettempdir()}/diagnostic_report_{int(task_id)}.pdf"
     report_path = generate_report(task_id, output)
@@ -49,7 +54,9 @@ def generate_and_email_report(task_id: int, recipient_emails: list[str]):
 
 
 @shared_task(name="app.tasks.reports_delivery.send_vulnerability_alerts")
-def send_vulnerability_alerts(cve_id: str, description: str, cvss_score: float, affected_devices: str):
+def send_vulnerability_alerts(
+    cve_id: str, description: str, cvss_score: float, affected_devices: str
+):
     """Notify active subscribers about high-severity vulnerabilities."""
     score = float(cvss_score or 0)
     subs = AlertSubscription.query.filter(

@@ -88,7 +88,9 @@ def test_redis_broker_publishes_to_two_listeners_under_50ms(monkeypatch):
 
         await asyncio.sleep(0.01)
         t0 = time.perf_counter()
-        ok = broker.publish_event("map_updates", {"event": "pending_created", "data": {"id": 777}})
+        ok = broker.publish_event(
+            "map_updates", {"event": "pending_created", "data": {"id": 777}}
+        )
         assert ok is True
 
         await asyncio.wait_for(done.wait(), timeout=0.5)
@@ -111,7 +113,9 @@ def _build_init_data(bot_token: str, user: dict) -> str:
         "query_id": "AAEAAAE",
         "user": json.dumps(user, separators=(",", ":"), ensure_ascii=False),
     }
-    data_check = "\n".join(f"{k}={v}" for k, v in sorted(data.items(), key=lambda kv: kv[0]))
+    data_check = "\n".join(
+        f"{k}={v}" for k, v in sorted(data.items(), key=lambda kv: kv[0])
+    )
     secret = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
     sig = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
     data["hash"] = sig
@@ -132,7 +136,9 @@ def test_webapp_submit_publishes_pending_created_to_redis(client, app, monkeypat
 
     token = "bot-secret"
     app.config["TELEGRAM_BOT_TOKEN"] = token
-    init_data = _build_init_data(token, {"id": 12345, "username": "miniuser", "last_name": "Иванов"})
+    init_data = _build_init_data(
+        token, {"id": 12345, "username": "miniuser", "last_name": "Иванов"}
+    )
 
     rv = client.post(
         "/api/bot/webapp_submit",

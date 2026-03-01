@@ -14,19 +14,19 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 
-revision = '0013_payload_json_to_jsonb_safe'
-down_revision = '0012_ai_tags_priority'
+revision = "0013_payload_json_to_jsonb_safe"
+down_revision = "0012_ai_tags_priority"
 branch_labels = None
 depends_on = None
 
 
 _TABLES = (
-    'incident_events',
-    'duty_events',
-    'duty_notifications',
-    'tracker_alerts',
-    'tracker_admin_audit',
-    'admin_audit_log',
+    "incident_events",
+    "duty_events",
+    "duty_notifications",
+    "tracker_alerts",
+    "tracker_admin_audit",
+    "admin_audit_log",
 )
 
 
@@ -51,7 +51,12 @@ def _migrate_postgres() -> None:
     )
 
     for table in _TABLES:
-        op.add_column(table, sa.Column('payload', postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+        op.add_column(
+            table,
+            sa.Column(
+                "payload", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+            ),
+        )
         op.execute(
             f"""
             UPDATE {table}
@@ -61,7 +66,7 @@ def _migrate_postgres() -> None:
             END
             """
         )
-        op.drop_column(table, 'payload_json')
+        op.drop_column(table, "payload_json")
 
     op.execute("DROP FUNCTION IF EXISTS _safe_text_to_jsonb(text);")
 
@@ -71,7 +76,7 @@ def _migrate_generic() -> None:
     bind = op.get_bind()
 
     for table in _TABLES:
-        op.add_column(table, sa.Column('payload', sa.JSON(), nullable=True))
+        op.add_column(table, sa.Column("payload", sa.JSON(), nullable=True))
 
         rows = list(bind.execute(sa.text(f"SELECT id, payload_json FROM {table}")))
         for row in rows:
@@ -85,15 +90,15 @@ def _migrate_generic() -> None:
                     parsed = {}
             bind.execute(
                 sa.text(f"UPDATE {table} SET payload = :payload WHERE id = :id"),
-                {'payload': parsed, 'id': row[0]},
+                {"payload": parsed, "id": row[0]},
             )
 
-        op.drop_column(table, 'payload_json')
+        op.drop_column(table, "payload_json")
 
 
 def upgrade() -> None:
     bind = op.get_bind()
-    if bind.dialect.name == 'postgresql':
+    if bind.dialect.name == "postgresql":
         _migrate_postgres()
     else:
         _migrate_generic()
@@ -103,8 +108,8 @@ def downgrade() -> None:
     bind = op.get_bind()
 
     for table in _TABLES:
-        op.add_column(table, sa.Column('payload_json', sa.Text(), nullable=True))
-        if bind.dialect.name == 'postgresql':
+        op.add_column(table, sa.Column("payload_json", sa.Text(), nullable=True))
+        if bind.dialect.name == "postgresql":
             op.execute(
                 f"""
                 UPDATE {table}
@@ -125,8 +130,11 @@ def downgrade() -> None:
                 else:
                     payload_json = json.dumps(raw, ensure_ascii=False)
                 bind.execute(
-                    sa.text(f"UPDATE {table} SET payload_json = :payload_json WHERE id = :id"),
-                    {'payload_json': payload_json, 'id': row[0]},
+                    sa.text(
+                        f"UPDATE {table} SET payload_json = :payload_json "
+                        "WHERE id = :id"
+                    ),
+                    {"payload_json": payload_json, "id": row[0]},
                 )
 
-        op.drop_column(table, 'payload')
+        op.drop_column(table, "payload")

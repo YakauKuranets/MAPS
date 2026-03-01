@@ -22,12 +22,17 @@ class AIOperativeBrain:
             model_uri = f"models:/{self.model_name}/Production"
             self.model = mlflow.pyfunc.load_model(model_uri)
             logger.critical(
-                "[MLOps] Боевая ИИ-модель '%s' успешно загружена и переведена в активный режим!",
+                "[MLOps] Боевая ИИ-модель '%s' успешно загружена "
+                "и переведена в активный режим!",
                 self.model_name,
             )
             self.version = "production_ml"
         except Exception as e:
-            logger.warning("[MLOps] Боевая модель не найдена. Переход на базовые эвристики. Ошибка: %s", e)
+            logger.warning(
+                "[MLOps] Боевая модель не найдена. "
+                "Переход на базовые эвристики. Ошибка: %s",
+                e,
+            )
             self.model = None
             self.version = "heuristic_fallback"
 

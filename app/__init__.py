@@ -83,64 +83,61 @@ def create_app(config_class: type = Config) -> Flask:
     _apply_security_headers(app)
 
     # ── Blueprints ────────────────────────────────────────────
-    # Core API (no prefix needed — blueprints define their own)
-    from app.addresses import bp as addresses_bp
-    from app.admin import bp as admin_bp
-    from app.admin_users import bp as admin_users_bp
-    from app.analytics import bp as analytics_bp
-    from app.audit.routes import bp as audit_bp
-    from app.auth import bp as auth_bp
-    from app.bot import bp as bot_bp
-    from app.chat import bp as chat_bp
-    from app.duty import bp as duty_bp
-    from app.event_chat import bp as event_chat_bp
-    from app.general import bp as general_bp
-    from app.geocode import bp as geocode_bp
-    from app.handshake import bp as handshake_bp
-    from app.incidents import bp as incidents_bp
-    from app.maintenance import bp as maintenance_bp
-    from app.notifications import bp as notifications_bp
-    from app.objects import bp as objects_bp
-    from app.offline import bp as offline_bp
-    from app.pending import bp as pending_bp
-    from app.realtime import bp as realtime_bp
-    from app.requests import bp as requests_bp
-    from app.service_access import bp as service_access_bp
-    from app.system import bp as system_bp
-    from app.terminals import bp as terminals_bp
-    from app.video import bp as video_bp
+    from importlib import import_module
+
+    def _load_bp(module_name: str, attr: str = "bp"):
+        try:
+            module = import_module(module_name)
+            return getattr(module, attr)
+        except Exception as exc:
+            logger.warning(
+                "[create_app] blueprint '%s' skipped: %s", module_name, exc
+            )
+            return None
 
     # Blueprints with url_prefix already set
-    for bp_obj in [
-        admin_users_bp,
-        analytics_bp,
-        chat_bp,
-        event_chat_bp,
-        handshake_bp,
-        incidents_bp,
-        maintenance_bp,
-        notifications_bp,
-        realtime_bp,
-        terminals_bp,
-        video_bp,
+    for module_name in [
+        "app.admin_users",
+        "app.analytics",
+        "app.chat",
+        "app.event_chat",
+        "app.handshake",
+        "app.incidents",
+        "app.maintenance",
+        "app.notifications",
+        "app.realtime",
+        "app.terminals",
+        "app.video",
     ]:
-        app.register_blueprint(bp_obj)
+        bp_obj = _load_bp(module_name)
+        if bp_obj is not None:
+            app.register_blueprint(bp_obj)
 
-    # Blueprints that need /api prefix
-    app.register_blueprint(addresses_bp, url_prefix="/api")
-    app.register_blueprint(admin_bp, url_prefix="/api/admin")
-    app.register_blueprint(auth_bp, url_prefix="/api/auth")
-    app.register_blueprint(bot_bp, url_prefix="/api/bot")
-    app.register_blueprint(general_bp, url_prefix="/api")
-    app.register_blueprint(geocode_bp, url_prefix="/api")
-    app.register_blueprint(objects_bp, url_prefix="/api")
-    app.register_blueprint(pending_bp, url_prefix="/api")
-    app.register_blueprint(requests_bp, url_prefix="/api")
-    app.register_blueprint(audit_bp, url_prefix="/api/audit")
-    app.register_blueprint(offline_bp, url_prefix="/api")
-    app.register_blueprint(service_access_bp, url_prefix="/api/service-access")
-    app.register_blueprint(system_bp, url_prefix="/api/system")
-    app.register_blueprint(duty_bp)
+    # Blueprints that need explicit prefix mapping
+    prefix_blueprints = [
+        ("app.addresses", "/api"),
+        ("app.admin", "/api/admin"),
+        ("app.auth", "/api/auth"),
+        ("app.bot", "/api/bot"),
+        ("app.general", "/api"),
+        ("app.geocode", "/api"),
+        ("app.objects", "/api"),
+        ("app.pending", "/api"),
+        ("app.requests", "/api"),
+        ("app.audit.routes", "/api/audit"),
+        ("app.offline", "/api"),
+        ("app.service_access", "/api/service-access"),
+        ("app.system", "/api/system"),
+        ("app.duty", None),
+    ]
+    for module_name, url_prefix in prefix_blueprints:
+        bp_obj = _load_bp(module_name)
+        if bp_obj is None:
+            continue
+        if url_prefix is None:
+            app.register_blueprint(bp_obj)
+        else:
+            app.register_blueprint(bp_obj, url_prefix=url_prefix)
 
     # ── Observability ─────────────────────────────────────────
     try:
@@ -149,6 +146,11 @@ def create_app(config_class: type = Config) -> Flask:
         register_metrics(app)
     except Exception:
         pass
+
+    # Backward-compatible CSRF helper for templates that call csrf_token()
+    app.jinja_env.globals.setdefault("csrf_token", lambda: "")
+
+    app.jinja_env.globals.setdefault("vite_asset", lambda _path: None)
 
     # ── Root route → index.html (main map interface) ──────────
     @app.route("/")
@@ -176,7 +178,10 @@ def create_app(config_class: type = Config) -> Flask:
     with app.app_context():
         from app.extensions import db
 
-        db.create_all()
+        try:
+            db.create_all()
+        except Exception as exc:
+            logger.warning("[create_app] db.create_all skipped: %s", exc)
 
     logger.warning("[SYSTEM] PLAYE Command Center v5 initialised (Flask factory).")
     return app

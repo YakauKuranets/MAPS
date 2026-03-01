@@ -37,7 +37,15 @@ def test_update_nvd_cve_triggers_alert(monkeypatch):
                     "description": {"description_data": [{"value": "critical issue"}]},
                 },
                 "impact": {"baseMetricV3": {"cvssV3": {"baseScore": 9.8}}},
-                "configurations": {"nodes": [{"cpe_match": [{"cpe23Uri": "cpe:2.3:a:acme:cam:1.0:*:*:*:*:*:*:*"}]}]},
+                "configurations": {
+                    "nodes": [
+                        {
+                            "cpe_match": [
+                                {"cpe23Uri": "cpe:2.3:a:acme:cam:1.0:*:*:*:*:*:*:*"}
+                            ]
+                        }
+                    ]
+                },
             }
         ]
     }
@@ -50,7 +58,9 @@ def test_update_nvd_cve_triggers_alert(monkeypatch):
 
     monkeypatch.setattr(updater.requests, "get", lambda *a, **k: FakeResp())
     monkeypatch.setattr(updater.CVE, "query", _FakeQuery())
-    monkeypatch.setattr(updater, "CVE", type("CVECls", (), {"query": _FakeQuery(), "__call__": None}))
+    monkeypatch.setattr(
+        updater, "CVE", type("CVECls", (), {"query": _FakeQuery(), "__call__": None})
+    )
 
     created = []
 

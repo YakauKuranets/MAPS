@@ -14,11 +14,14 @@ down_revision = "0007_chat2_receipts"
 branch_labels = None
 depends_on = None
 
+
 def upgrade():
     # Добавляем колонку meta_json в chat2_messages
     with op.batch_alter_table("chat2_messages") as batch_op:
         batch_op.add_column(
-            sa.Column("meta_json", sa.JSON().with_variant(sa.Text(), "sqlite"), nullable=True)
+            sa.Column(
+                "meta_json", sa.JSON().with_variant(sa.Text(), "sqlite"), nullable=True
+            )
         )
     # Создаём таблицу push-токенов
     op.create_table(
@@ -28,8 +31,11 @@ def upgrade():
         sa.Column("member_id", sa.String(length=64), nullable=False),
         sa.Column("token", sa.String(length=256), nullable=False, unique=True),
         sa.Column("created_at", sa.DateTime, nullable=False),
-        sa.UniqueConstraint("member_type", "member_id", "token", name="uq_chat2_push_member_token"),
+        sa.UniqueConstraint(
+            "member_type", "member_id", "token", name="uq_chat2_push_member_token"
+        ),
     )
+
 
 def downgrade():
     # Удаляем таблицу push-токенов

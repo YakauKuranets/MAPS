@@ -9,9 +9,12 @@ from app.extensions import db
 from app.models import PendingMarker
 
 
-@pytest.mark.skipif(not os.environ.get('POSTGIS_TEST_DATABASE_URL'), reason='POSTGIS_TEST_DATABASE_URL is not configured')
+@pytest.mark.skipif(
+    not os.environ.get("POSTGIS_TEST_DATABASE_URL"),
+    reason="POSTGIS_TEST_DATABASE_URL is not configured",
+)
 def test_postgis_st_dwithin_filters_points_within_1km(monkeypatch):
-    monkeypatch.setenv('DATABASE_URI', os.environ['POSTGIS_TEST_DATABASE_URL'])
+    monkeypatch.setenv("DATABASE_URI", os.environ["POSTGIS_TEST_DATABASE_URL"])
     app = create_app(TestingConfig)
 
     with app.app_context():
@@ -19,14 +22,14 @@ def test_postgis_st_dwithin_filters_points_within_1km(monkeypatch):
         db.create_all()
 
         points = [
-            ('A', 55.751244, 37.618423),
-            ('B', 55.757000, 37.615000),
-            ('C', 55.760500, 37.620500),
-            ('D', 55.730000, 37.640000),
-            ('E', 55.700000, 37.500000),
+            ("A", 55.751244, 37.618423),
+            ("B", 55.757000, 37.615000),
+            ("C", 55.760500, 37.620500),
+            ("D", 55.730000, 37.640000),
+            ("E", 55.700000, 37.500000),
         ]
         for name, lat, lon in points:
-            db.session.add(PendingMarker(name=name, lat=lat, lon=lon, status='new'))
+            db.session.add(PendingMarker(name=name, lat=lat, lon=lon, status="new"))
         db.session.commit()
 
         center_lon, center_lat = 37.618423, 55.751244
@@ -40,4 +43,4 @@ def test_postgis_st_dwithin_filters_points_within_1km(monkeypatch):
             .all()
         ]
 
-        assert names == ['A', 'B', 'C']
+        assert names == ["A", "B", "C"]

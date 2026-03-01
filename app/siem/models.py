@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Модели данных для экспорта в SIEM системы.
-Соответствуют стандартным форматам ECS (Elastic Common Schema) и CEF (Common Event Format).
+Соответствуют стандартным форматам ECS (Elastic Common Schema)
+и CEF (Common Event Format).
 """
 
 from datetime import datetime, timezone

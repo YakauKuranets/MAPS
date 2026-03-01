@@ -72,7 +72,11 @@ class AdvancedOSINTScanner:
             if resp.status_code != 200:
                 return {}
             payload = resp.json() or {}
-            data = payload.get("result") if isinstance(payload.get("result"), dict) else payload
+            data = (
+                payload.get("result")
+                if isinstance(payload.get("result"), dict)
+                else payload
+            )
             return {
                 "ip": ip,
                 "first_seen": data.get("first_seen"),
@@ -86,7 +90,7 @@ class AdvancedOSINTScanner:
 
     def _extract_tls_history(self, data: Dict) -> List[Dict]:
         out: list[dict] = []
-        for service in (data.get("services") or []):
+        for service in data.get("services") or []:
             tls = service.get("tls") if isinstance(service, dict) else None
             if not isinstance(tls, dict):
                 continue

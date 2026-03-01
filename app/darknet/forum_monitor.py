@@ -27,12 +27,16 @@ def _enrich_attribution_graph(post: dict) -> None:
         profile = asyncio.run(process_new_intel(raw_intel))
         logger.debug("[KRAKEN_GRAPH] Профиль актера обновлен: %s", profile)
     except RuntimeError:
-        logger.debug("[KRAKEN_GRAPH] Active event loop detected, scheduling enrichment task")
+        logger.debug(
+            "[KRAKEN_GRAPH] Active event loop detected, scheduling enrichment task"
+        )
         try:
             loop = asyncio.get_running_loop()
             loop.create_task(process_new_intel(raw_intel))
         except RuntimeError:
-            logger.exception("[KRAKEN_GRAPH] Failed to acquire running loop for enrichment")
+            logger.exception(
+                "[KRAKEN_GRAPH] Failed to acquire running loop for enrichment"
+            )
 
 
 def emit_new_post_event(post: dict) -> None:

@@ -18,12 +18,16 @@ def analyze_recent_posts():
     Анализирует новые посты за последние 24 часа.
     """
     from datetime import datetime, timedelta, timezone
+
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
 
-    posts = DarknetPost.query.filter(
-        DarknetPost.discovered_at >= cutoff,
-        DarknetPost.analyzed == False
-    ).limit(200).all()
+    posts = (
+        DarknetPost.query.filter(
+            DarknetPost.discovered_at >= cutoff, DarknetPost.analyzed.is_(False)
+        )
+        .limit(200)
+        .all()
+    )
 
     analyzer = LeakAnalyzer()
     results = analyzer.analyze_batch(posts)
@@ -45,9 +49,7 @@ def check_critical_matches():
     from datetime import datetime, timedelta, timezone
 
     cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
-    posts = DarknetPost.query.filter(
-        DarknetPost.discovered_at >= cutoff
-    ).all()
+    posts = DarknetPost.query.filter(DarknetPost.discovered_at >= cutoff).all()
 
     matcher = TargetMatcher()
     critical_matches = []
@@ -55,11 +57,9 @@ def check_critical_matches():
     for post in posts:
         matches = matcher.find_matches(post)
         if matches:
-            critical_matches.append({
-                'post_id': post.id,
-                'url': post.url,
-                'matches': matches
-            })
+            critical_matches.append(
+                {"post_id": post.id, "url": post.url, "matches": matches}
+            )
 
     if critical_matches:
         # Отправка уведомлений через Telegram/email

@@ -29,7 +29,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_alert_rules_condition", "alert_rules", ["condition"], unique=False)
+    op.create_index(
+        "ix_alert_rules_condition", "alert_rules", ["condition"], unique=False
+    )
     op.create_index("ix_alert_rules_enabled", "alert_rules", ["enabled"], unique=False)
 
     op.create_table(
@@ -42,8 +44,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["rule_id"], ["alert_rules.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_alert_history_created_at", "alert_history", ["created_at"], unique=False)
-    op.create_index("ix_alert_history_rule_id", "alert_history", ["rule_id"], unique=False)
+    op.create_index(
+        "ix_alert_history_created_at", "alert_history", ["created_at"], unique=False
+    )
+    op.create_index(
+        "ix_alert_history_rule_id", "alert_history", ["rule_id"], unique=False
+    )
 
 
 def downgrade() -> None:

@@ -9,7 +9,16 @@ from app.services.requests_service import (
 
 
 def _create_pending(name="P1", lat=1.0, lon=2.0, photo="photo.jpg"):
-    p = PendingMarker(name=name, lat=lat, lon=lon, notes="note", status="new", link="", category="cat1", photo=photo)
+    p = PendingMarker(
+        name=name,
+        lat=lat,
+        lon=lon,
+        notes="note",
+        status="new",
+        link="",
+        category="cat1",
+        photo=photo,
+    )
     db.session.add(p)
     db.session.commit()
     return p
@@ -37,7 +46,15 @@ def test_get_request_details(db_session):
 
 def test_delete_request_with_photo_attached_to_address(db_session):
     # Адрес с такими же координатами
-    addr = Address(name="Addr", lat=10.0, lon=20.0, notes="", status="open", link="", category="cat1")
+    addr = Address(
+        name="Addr",
+        lat=10.0,
+        lon=20.0,
+        notes="",
+        status="open",
+        link="",
+        category="cat1",
+    )
     db.session.add(addr)
     db.session.commit()
 

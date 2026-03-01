@@ -40,25 +40,29 @@ def upgrade():
 
     if not _table_exists(conn, "admin_audit_log"):
         op.create_table(
-            'admin_audit_log',
-            sa.Column('id', sa.Integer(), primary_key=True),
-            sa.Column('ts', sa.DateTime()),
-            sa.Column('actor', sa.String(64), nullable=True),
-            sa.Column('role', sa.String(16), nullable=True),
-            sa.Column('ip', sa.String(64), nullable=True),
-            sa.Column('method', sa.String(8), nullable=True),
-            sa.Column('path', sa.String(255), nullable=True),
-            sa.Column('action', sa.String(64), nullable=False),
-            sa.Column('payload_json', sa.Text(), nullable=True)
+            "admin_audit_log",
+            sa.Column("id", sa.Integer(), primary_key=True),
+            sa.Column("ts", sa.DateTime()),
+            sa.Column("actor", sa.String(64), nullable=True),
+            sa.Column("role", sa.String(16), nullable=True),
+            sa.Column("ip", sa.String(64), nullable=True),
+            sa.Column("method", sa.String(8), nullable=True),
+            sa.Column("path", sa.String(255), nullable=True),
+            sa.Column("action", sa.String(64), nullable=False),
+            sa.Column("payload_json", sa.Text(), nullable=True),
         )
 
-    if _table_exists(conn, "admin_audit_log") and not _index_exists(conn, "admin_audit_log", "ix_admin_audit_log_ts"):
+    if _table_exists(conn, "admin_audit_log") and not _index_exists(
+        conn, "admin_audit_log", "ix_admin_audit_log_ts"
+    ):
         op.create_index("ix_admin_audit_log_ts", "admin_audit_log", ["ts"])
 
 
 def downgrade():
     conn = op.get_bind()
-    if _table_exists(conn, "admin_audit_log") and _index_exists(conn, "admin_audit_log", "ix_admin_audit_log_ts"):
+    if _table_exists(conn, "admin_audit_log") and _index_exists(
+        conn, "admin_audit_log", "ix_admin_audit_log_ts"
+    ):
         op.drop_index("ix_admin_audit_log_ts", table_name="admin_audit_log")
     if _table_exists(conn, "admin_audit_log"):
         op.drop_table("admin_audit_log")

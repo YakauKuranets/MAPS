@@ -32,8 +32,8 @@ def _select_config_class() -> type:
     затем ``FLASK_ENV``. Любое значение, начинающееся с ``prod``,
     приводит к выбору :class:`ProductionConfig`.
     """
-    env = (os.getenv('APP_ENV') or os.getenv('FLASK_ENV') or 'development').lower()
-    if env.startswith('prod'):
+    env = (os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "development").lower()
+    if env.startswith("prod"):
         return ProductionConfig
     return DevelopmentConfig
 
@@ -55,15 +55,17 @@ def main() -> None:
 
     # Запускаем WebSocket‑сервер только в основном процессе, чтобы избежать
     # ошибки "address already in use" при перезапуске отладочного сервера.
-    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         try:
             ws_thread = Thread(
                 target=start_socket_server,
-                args=('0.0.0.0', int(app.config.get('WS_PORT', 8765))),
+                args=("0.0.0.0", int(app.config.get("WS_PORT", 8765))),
                 kwargs={
-                    'secret_key': app.secret_key,
-                    'token_ttl': int(app.config.get('REALTIME_TOKEN_TTL_SEC', 600)),
-                    'allowed_origins': str(app.config.get('REALTIME_ALLOWED_ORIGINS', '')),
+                    "secret_key": app.secret_key,
+                    "token_ttl": int(app.config.get("REALTIME_TOKEN_TTL_SEC", 600)),
+                    "allowed_origins": str(
+                        app.config.get("REALTIME_ALLOWED_ORIGINS", "")
+                    ),
                 },
                 daemon=True,
             )
@@ -71,13 +73,13 @@ def main() -> None:
         except OSError as e:
             # Если порт уже занят, выводим предупреждение и продолжаем запуск
             logging.getLogger(__name__).warning(
-                'Не удалось запустить WebSocket‑сервер: %s', e
+                "Не удалось запустить WebSocket‑сервер: %s", e
             )
 
     # Запускаем встроенный веб‑сервер
     # В продакшене используйте полноценный WSGI‑сервер (uWSGI, gunicorn и т.д.).
-    app.run(host='0.0.0.0', port=5000, debug=app.config.get('DEBUG', True))
+    app.run(host="0.0.0.0", port=5000, debug=app.config.get("DEBUG", True))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -33,7 +33,9 @@ def _unique_ipv4_addrs() -> List[str]:
     # 1) Hostname resolution
     try:
         host = socket.gethostname()
-        for _family, _socktype, _proto, _canon, sockaddr in socket.getaddrinfo(host, None):
+        for _family, _socktype, _proto, _canon, sockaddr in socket.getaddrinfo(
+            host, None
+        ):
             try:
                 ip = sockaddr[0]
                 if _is_good_ipv4(ip):
@@ -90,13 +92,17 @@ def lan_info():
     port = _guess_port()
     ips = _unique_ipv4_addrs()
 
-    preferred = (current_app.config.get("BOOTSTRAP_PREFERRED_BASE_URL") or "").strip().rstrip("/")
+    preferred = (
+        (current_app.config.get("BOOTSTRAP_PREFERRED_BASE_URL") or "")
+        .strip()
+        .rstrip("/")
+    )
     current_origin = (request.url_root or "").rstrip("/")
 
     # If the request comes through trycloudflare, ensure https in UI hints.
     host = (request.host or "").lower().strip()
     if host.endswith("trycloudflare.com") and current_origin.startswith("http://"):
-        current_origin = "https://" + current_origin[len("http://"):]
+        current_origin = "https://" + current_origin[len("http://") :]
 
     recommended: List[str] = []
     if preferred:
@@ -115,6 +121,9 @@ def lan_info():
             "preferred_base_url": preferred,
             "current_origin": current_origin,
             "recommended_base_urls": recommended,
-            "note": "Computed on server; UI can use preferred_base_url to avoid LAN IP guessing.",
+            "note": (
+                "Computed on server; UI can use preferred_base_url "
+                "to avoid LAN IP guessing."
+            ),
         }
     ), 200

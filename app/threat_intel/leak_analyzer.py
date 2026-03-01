@@ -32,62 +32,68 @@ class LeakAnalyzer:
         logger.info("Analyzing post %s from %s", post.id, post.url)
 
         result = {
-            'post_id': post.id,
-            'url': post.url,
-            'title': post.title,
-            'content_preview': post.content[:500] if post.content else '',
-            'secrets': [],
-            'classification': None,
-            'target_matches': [],
-            'risk_score': 0,
-            'priority': 'LOW',
+            "post_id": post.id,
+            "url": post.url,
+            "title": post.title,
+            "content_preview": post.content[:500] if post.content else "",
+            "secrets": [],
+            "classification": None,
+            "target_matches": [],
+            "risk_score": 0,
+            "priority": "LOW",
         }
 
         if post.content:
             secrets = self.secret_extractor.extract_all(post.content)
-            result['secrets'] = secrets
+            result["secrets"] = secrets
 
             emails = []
             for secret in secrets:
-                if secret.get('email'):
-                    emails.append(secret['email'])
-                if secret.get('type') in {'password', 'credential'}:
-                    raw_password = secret.get('password') or secret.get('value') or ''
-                    encrypted_secret = encrypt_secret(raw_password) if raw_password else None
+                if secret.get("email"):
+                    emails.append(secret["email"])
+                if secret.get("type") in {"password", "credential"}:
+                    raw_password = secret.get("password") or secret.get("value") or ""
+                    encrypted_secret = (
+                        encrypt_secret(raw_password) if raw_password else None
+                    )
                     cred = LeakedCredential(
                         post_id=post.id,
-                        email=secret.get('email'),
-                        username=secret.get('username'),
+                        email=secret.get("email"),
+                        username=secret.get("username"),
                         password_hash=encrypted_secret,
-                        domain=secret.get('domain'),
+                        domain=secret.get("domain"),
                         discovered_at=datetime.now(timezone.utc),
                     )
                     db.session.add(cred)
             if emails:
-                post.indicators = {'emails': sorted(set(emails))}
+                post.indicators = {"emails": sorted(set(emails))}
 
         if post.content:
             classification = self.classifier.classify(post.content, post.title)
-            result['classification'] = classification
-            result['risk_score'] = classification.get('risk_score', 0)
+            result["classification"] = classification
+            result["risk_score"] = classification.get("risk_score", 0)
 
-            if result['risk_score'] >= 70:
-                result['priority'] = 'CRITICAL'
-            elif result['risk_score'] >= 40:
-                result['priority'] = 'HIGH'
-            elif result['risk_score'] >= 20:
-                result['priority'] = 'MEDIUM'
+            if result["risk_score"] >= 70:
+                result["priority"] = "CRITICAL"
+            elif result["risk_score"] >= 40:
+                result["priority"] = "HIGH"
+            elif result["risk_score"] >= 20:
+                result["priority"] = "MEDIUM"
             else:
-                result['priority'] = 'LOW'
+                result["priority"] = "LOW"
 
         if post.content:
             fast_matches = self.target_automaton.find_matches(post.content)
-            result['target_matches'] = [
-                {'type': 'target_match', 'value': target, 'context': 'matched_by_aho_corasick'}
+            result["target_matches"] = [
+                {
+                    "type": "target_match",
+                    "value": target,
+                    "context": "matched_by_aho_corasick",
+                }
                 for target in sorted(fast_matches)
             ]
 
-        post.risk_score = int(result['risk_score'])
+        post.risk_score = int(result["risk_score"])
         post.analysis_result = result
         post.analyzed = True
 
@@ -109,14 +115,16 @@ class LeakAnalyzer:
 
         cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
-        credentials = LeakedCredential.query.filter(LeakedCredential.discovered_at >= cutoff).all()
+        credentials = LeakedCredential.query.filter(
+            LeakedCredential.discovered_at >= cutoff
+        ).all()
         domains = Counter([c.domain for c in credentials if c.domain])
         emails = [c.email for c in credentials if c.email]
 
         return {
-            'period_hours': hours,
-            'total_credentials': len(credentials),
-            'unique_domains': len(domains),
-            'top_domains': domains.most_common(10),
-            'sample_emails': emails[:20],
+            "period_hours": hours,
+            "total_credentials": len(credentials),
+            "unique_domains": len(domains),
+            "top_domains": domains.most_common(10),
+            "sample_emails": emails[:20],
         }

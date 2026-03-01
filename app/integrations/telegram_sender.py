@@ -11,15 +11,18 @@ import httpx
 def build_dutytracker_deeplink(base_url: str, token: str) -> str:
     base_url = (base_url or "").strip().rstrip("/")
     token = (token or "").strip()
-    return f"dutytracker://bootstrap?base_url={quote(base_url, safe='')}&token={quote(token, safe='')}"
+    return (
+        "dutytracker://bootstrap"
+        f"?base_url={quote(base_url, safe='')}&token={quote(token, safe='')}"
+    )
 
 
 def build_dutytracker_intent_link(base_url: str, token: str) -> str:
     """intent://-ссылка для более надёжного открытия на Android."""
     base_url = (base_url or "").strip().rstrip("/")
     token = (token or "").strip()
-    q_base = quote(base_url, safe='')
-    q_token = quote(token, safe='')
+    q_base = quote(base_url, safe="")
+    q_token = quote(token, safe="")
     return (
         "intent://bootstrap"
         f"?base_url={q_base}&token={q_token}"
@@ -27,13 +30,12 @@ def build_dutytracker_intent_link(base_url: str, token: str) -> str:
     )
 
 
-
-
 def build_dutytracker_open_url(base_url: str, token: str) -> str:
     """HTTP-ссылка на страницу открытия, чтобы Telegram inline-кнопки принимали URL."""
     base_url = (base_url or "").strip().rstrip("/")
     token = (token or "").strip()
     return f"{base_url}/open/dutytracker?token={quote(token, safe='')}"
+
 
 def send_telegram_message(
     bot_token: str,
@@ -74,7 +76,12 @@ def send_telegram_message(
         try:
             payload = r.json()
         except Exception:
-            payload = {"ok": False, "error": "invalid_json", "status_code": r.status_code, "text": r.text[:1000]}
+            payload = {
+                "ok": False,
+                "error": "invalid_json",
+                "status_code": r.status_code,
+                "text": r.text[:1000],
+            }
         return payload
 
 
@@ -86,7 +93,8 @@ def send_dutytracker_connect_button(
     pair_code: str,
 ) -> Dict[str, Any]:
     # Telegram Bot API не принимает intent:// и custom-scheme в URL для inline-кнопок.
-    # Поэтому даём http-страницу (/open/dutytracker), которая сама пытается открыть приложение.
+    # Поэтому даём http-страницу (/open/dutytracker),
+    # которая сама пытается открыть приложение.
     open_url = build_dutytracker_open_url(base_url, token)
     deeplink = build_dutytracker_deeplink(base_url, token)
     intent_link = build_dutytracker_intent_link(base_url, token)
@@ -97,7 +105,8 @@ def send_dutytracker_connect_button(
         f"Код привязки: {pair_code}\n\n"
         "1) Нажмите кнопку «Открыть страницу привязки».\n"
         "2) В браузере подтвердите открытие DutyTracker.\n"
-        "3) Если не привязалось автоматически — откройте приложение и нажмите «Привязать».\n\n"
+        "3) Если не привязалось автоматически — откройте приложение "
+        "и нажмите «Привязать».\n\n"
         "Если кнопка не сработала, откройте ссылку вручную:\n"
         f"{open_url}\n\n"
         "Запасной вариант (вручную, если надо):\n"

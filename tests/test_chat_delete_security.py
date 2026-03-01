@@ -20,7 +20,11 @@ def test_chat_delete_requires_csrf(client):
     token = _csrf(client)
 
     # создадим сообщение (с CSRF)
-    r = client.post("/api/chat/u1", json={"text": "hi", "sender": "admin"}, headers={"X-CSRF-Token": token})
+    r = client.post(
+        "/api/chat/u1",
+        json={"text": "hi", "sender": "admin"},
+        headers={"X-CSRF-Token": token},
+    )
     assert r.status_code in (200, 201)
 
     # без CSRF — должно блокироваться

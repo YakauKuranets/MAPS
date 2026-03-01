@@ -32,7 +32,9 @@ class ReportMailer:
         self.smtp_port = int(smtp_port or cfg.get("MAIL_PORT", 587))
         self.username = username or cfg.get("MAIL_USERNAME", "")
         self.password = password or cfg.get("MAIL_PASSWORD", "")
-        self.use_tls = bool(cfg.get("MAIL_USE_TLS", True) if use_tls is None else use_tls)
+        self.use_tls = bool(
+            cfg.get("MAIL_USE_TLS", True) if use_tls is None else use_tls
+        )
 
     def send_report(
         self,
@@ -77,11 +79,17 @@ class ReportMailer:
             return False
 
     @staticmethod
-    def _attach_file(msg: MIMEMultipart, file_path: str, subtype: Optional[str] = None) -> None:
+    def _attach_file(
+        msg: MIMEMultipart, file_path: str, subtype: Optional[str] = None
+    ) -> None:
         path = Path(file_path)
         if not path.exists() or not path.is_file():
             return
         with open(path, "rb") as stream:
-            part = MIMEApplication(stream.read(), _subtype=subtype) if subtype else MIMEApplication(stream.read())
+            part = (
+                MIMEApplication(stream.read(), _subtype=subtype)
+                if subtype
+                else MIMEApplication(stream.read())
+            )
         part.add_header("Content-Disposition", "attachment", filename=path.name)
         msg.attach(part)

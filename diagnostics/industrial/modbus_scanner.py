@@ -58,11 +58,19 @@ class ModbusDeviceScanner:
 
         try:
             response_id = client.read_holding_registers(address=0, count=1, slave=1)
-            if response_id is not None and not response_id.isError() and getattr(response_id, "registers", None):
+            if (
+                response_id is not None
+                and not response_id.isError()
+                and getattr(response_id, "registers", None)
+            ):
                 result["device_id"] = response_id.registers[0]
 
             response_regs = client.read_holding_registers(address=0, count=10, slave=1)
-            if response_regs is not None and not response_regs.isError() and getattr(response_regs, "registers", None):
+            if (
+                response_regs is not None
+                and not response_regs.isError()
+                and getattr(response_regs, "registers", None)
+            ):
                 for i, val in enumerate(response_regs.registers):
                     result["registers"][f"reg_{i}"] = val
         except ModbusException as exc:
@@ -74,7 +82,9 @@ class ModbusDeviceScanner:
 
         return result
 
-    def scan_network(self, base_ip: str, first: int = 1, last: int = 254) -> list[dict[str, Any]]:
+    def scan_network(
+        self, base_ip: str, first: int = 1, last: int = 254
+    ) -> list[dict[str, Any]]:
         """
         Сканирует диапазон IP-адресов в подсети.
         base_ip: первые три октета, например "192.168.1.".
