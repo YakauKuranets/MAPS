@@ -2412,3 +2412,277 @@
 
 ## Next step
 - Keep code unchanged and repeat full JS build verification immediately after registry ACL is restored.
+
+### Batch #121 (completed in this iteration)
+- Target scope:
+  - Continue Android audit Phase A with Step 3: align `android/dutytracker_src/app/README.md` with the actual repository/tooling state.
+- Actions taken:
+  1. Reworked README section for Gradle Wrapper to match current repo contents (`gradlew`, `gradlew.bat`, wrapper usage).
+  2. Added explicit environment requirements:
+     - JDK 17
+     - Android SDK
+     - network access to `services.gradle.org` for wrapper distribution download
+  3. Added `local.properties` setup flow via template (`local.properties.example`).
+  4. Added exact CLI command blocks for Linux/macOS, Windows PowerShell, and CI pipeline usage.
+  5. Re-checked README content and command references with targeted grep checks.
+
+## Verification for batch #121
+- `sed -n '1,260p' android/dutytracker_src/app/README.md`
+- `rg -n "Gradle Wrapper и CLI|local.properties.example|:app:assembleDebug|:app:lintDebug|services.gradle.org" android/dutytracker_src/app/README.md`
+- `cd android/dutytracker_src/app && ./gradlew --version`
+
+## Result
+- Android README now reflects the current project reality and provides executable, platform-specific CLI guidance.
+- Wrapper bootstrap is confirmed to start; in current environment it is blocked on network reachability to Gradle distribution host.
+- Phase A progress updated:
+  - done: `3`
+  - remaining: `1`
+
+## Next step
+- Execute Phase A / Step 4 final verification run when network access to `services.gradle.org` is available:
+  - `cd android/dutytracker_src/app && ./gradlew :app:tasks`
+  - `cd android/dutytracker_src/app && ./gradlew :app:assembleDebug`
+  - `cd android/dutytracker_src/app && ./gradlew :app:lintDebug`
+
+### Batch #122 (completed in this iteration)
+- Target scope:
+  - Requested deep re-audit across backend + `frontend` + `react_frontend` + Android app with fresh command execution.
+- Actions taken:
+  1. Re-ran backend runtime and test bootstrap checks (`create_app` smoke + pytest collect).
+  2. Re-ran maintained backend quality gates (`ruff`, `compileall`).
+  3. Re-ran frontend install/build verification for both JS stacks.
+  4. Re-ran Android verification commands (`:app:tasks`, `:app:assembleDebug`, `:app:lintDebug`) with explicit JDK 17 re-check.
+  5. Added dedicated report `DEEP_AUDIT_FULLSTACK_2026-03-01.md` with consolidated findings.
+  6. Corrected Android README section to match actual repo behavior of `gradlew` vs `gradlew.bat`.
+
+## Verification for batch #122
+- `python - <<'PY' ... create_app + test_client GET / /health /ready ... PY`
+- `PYTHONPATH=. pytest --collect-only -q`
+- `ruff check analytics app/services app/service_access app/maintenance app/video/security_audit realtime websocket tests --output-format concise`
+- `python -m compileall -q analytics app/services app/service_access app/maintenance app/video/security_audit realtime websocket tests`
+- `npm --prefix frontend install --no-audit --no-fund --registry=https://registry.npmjs.org`
+- `npm --prefix frontend run build`
+- `npm --prefix react_frontend ci --registry=https://registry.npmjs.org`
+- `npm --prefix react_frontend run build`
+- `cd android/dutytracker_src/app && ./gradlew :app:tasks`
+- `cd android/dutytracker_src/app && JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2 PATH=/root/.local/share/mise/installs/java/17.0.2/bin:$PATH ./gradlew :app:tasks`
+- `cd android/dutytracker_src/app && JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2 PATH=/root/.local/share/mise/installs/java/17.0.2/bin:$PATH ./gradlew :app:assembleDebug`
+- `cd android/dutytracker_src/app && JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2 PATH=/root/.local/share/mise/installs/java/17.0.2/bin:$PATH ./gradlew :app:lintDebug`
+
+## Result
+- Backend runtime/test bootstrap currently blocked by missing dependency `celery` in environment.
+- Backend lint/compile gates remain green.
+- Frontend builds remain blocked by npm ACL/policy errors (`403`) for `@vitejs/plugin-react-swc` and `maplibre-gl`.
+- Android checks confirm JDK 17 requirement and current plugin-resolution blocker for `com.android.application:8.6.0`.
+- README now accurately documents the real CLI bootstrap behavior in this repo (Unix shim vs Windows bootstrap script).
+
+## Next step
+- Unblock environment dependencies/network and re-run the same command matrix to close Android Phase A / Step 4 and frontend build steps.
+
+### Batch #123 (completed in this iteration)
+- Target scope:
+  - Proceed strictly to the next planned item: Android Phase A / Step 4 final verification sequence.
+- Execution discipline:
+  - Applied strict order: run next command only if previous command is successful.
+- Actions taken:
+  1. Ran first mandatory command in the chain with explicit JDK 17:
+     - `cd android/dutytracker_src/app && JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2 PATH=/root/.local/share/mise/installs/java/17.0.2/bin:$PATH gradle :app:tasks`
+  2. Verified result before moving forward.
+  3. Stopped sequence because step 1 failed (did not execute `:app:assembleDebug` and `:app:lintDebug`).
+
+## Verification for batch #123
+- `cd android/dutytracker_src/app && JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2 PATH=/root/.local/share/mise/installs/java/17.0.2/bin:$PATH gradle :app:tasks`
+
+## Result
+- Step 4 is currently blocked at the first command by Android plugin resolution failure:
+  - `Plugin [id: 'com.android.application', version: '8.6.0'] was not found ...`
+- Sequential rule is respected: no transition to next commands until `:app:tasks` is green.
+- Phase A progress remains:
+  - done: `3`
+  - remaining: `1`
+
+## Next step
+- Unblock plugin repository resolution for AGP (`com.android.application:8.6.0`) and re-run the same Step 4 sequence in strict order:
+  1. `gradle :app:tasks`
+  2. `gradle :app:assembleDebug`
+  3. `gradle :app:lintDebug`
+
+### Batch #124 (completed in this iteration)
+- Target scope:
+  - Continue the same next item (Phase A / Step 4) without skipping order, and verify blocker root cause before retrying build commands.
+- Actions taken:
+  1. Performed direct network reachability probes to required artifact hosts used by Android Gradle/plugin resolution:
+     - `https://dl.google.com/dl/android/maven2/`
+     - `https://repo.maven.apache.org/maven2/`
+     - `https://services.gradle.org/distributions/`
+  2. Captured effective proxy-related environment variables affecting Gradle/npm/curl in this environment.
+
+## Verification for batch #124
+- `curl -I --max-time 15 https://dl.google.com/dl/android/maven2/`
+- `curl -I --max-time 15 https://repo.maven.apache.org/maven2/`
+- `curl -I --max-time 15 https://services.gradle.org/distributions/`
+- `env | rg -i "proxy|http_proxy|https_proxy|no_proxy"`
+
+## Result
+- All three required endpoints fail through the configured proxy with the same transport error and status:
+  - `curl: (56) CONNECT tunnel failed, response 403`
+  - `HTTP/1.1 403 Forbidden`
+- This confirms the current Phase A / Step 4 blocker is external network/proxy policy, not Android project configuration logic.
+- Sequential execution policy remains respected: Step 4 command chain is not advanced until first command can pass.
+
+## Next step
+- Adjust proxy ACL/routing to allow CONNECT access to:
+  - `dl.google.com`
+  - `repo.maven.apache.org`
+  - `services.gradle.org`
+- After ACL is fixed, re-run Step 4 strictly in order:
+  1. `gradle :app:tasks`
+  2. `gradle :app:assembleDebug`
+  3. `gradle :app:lintDebug`
+
+### Batch #125 (completed in this iteration)
+- Target scope:
+  - Continue the same next planned item (Phase A / Step 4), keeping strict command order and attempting a minimal environment-only workaround for the first blocked command.
+- Actions taken:
+  1. Re-ran the first Step 4 command with explicit JDK 17 and **proxy variables disabled only for this command**:
+     - `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy -u GRADLE_OPTS ... gradle :app:tasks`
+  2. Re-ran the same command with `--info` to capture detailed transport diagnostics for root-cause evidence.
+  3. Did not proceed to `:app:assembleDebug` and `:app:lintDebug` because first command is still not green.
+
+## Verification for batch #125
+- `cd android/dutytracker_src/app && env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy -u GRADLE_OPTS JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2 PATH=/root/.local/share/mise/installs/java/17.0.2/bin:$PATH gradle :app:tasks`
+- `cd android/dutytracker_src/app && env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy -u GRADLE_OPTS JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2 PATH=/root/.local/share/mise/installs/java/17.0.2/bin:$PATH gradle :app:tasks --info`
+
+## Result
+- With proxy enabled previously: endpoint access failed by proxy CONNECT `403`.
+- With proxy disabled for the command: Gradle now reports direct outbound failures (`java.net.SocketException: Network is unreachable`) to:
+  - `dl.google.com:443`
+  - `repo.maven.apache.org:443`
+  - `plugins.gradle.org:443`
+- Conclusion: environment remains network-blocked in both modes (proxy path denied by ACL; direct egress unavailable), so Step 4 cannot pass yet.
+- Sequential rule preserved: no move to next Step 4 commands until `:app:tasks` succeeds.
+
+## Next step
+- Unblock one working outbound path (either proxy ACL allowlist or direct egress) for:
+  - `dl.google.com`
+  - `repo.maven.apache.org`
+  - `plugins.gradle.org`
+  - `services.gradle.org`
+- Then re-run Step 4 in strict order:
+  1. `gradle :app:tasks`
+  2. `gradle :app:assembleDebug`
+  3. `gradle :app:lintDebug`
+
+### Batch #126 (completed in this iteration)
+- Target scope:
+  - Continue Phase A / Step 4 strictly in sequence from command 1 (`:app:tasks`) with explicit JDK 17.
+- Actions taken:
+  1. Re-ran first required command:
+     - `cd android/dutytracker_src/app && JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2 PATH=/root/.local/share/mise/installs/java/17.0.2/bin:$PATH gradle :app:tasks`
+  2. Verified command result before any attempt to move forward.
+  3. Stopped sequence because command 1 is still failing.
+
+## Verification for batch #126
+- `cd android/dutytracker_src/app && JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2 PATH=/root/.local/share/mise/installs/java/17.0.2/bin:$PATH gradle :app:tasks`
+
+## Result
+- Step 4 remains blocked at first command with unchanged AGP resolution error:
+  - `Plugin [id: 'com.android.application', version: '8.6.0'] was not found ...`
+- Sequential execution policy preserved: `:app:assembleDebug` and `:app:lintDebug` were not run.
+- Phase A progress remains:
+  - done: `3`
+  - remaining: `1`
+
+## Next step
+- Keep Step 4 order unchanged; re-run command 1 after network/proxy unblock, then proceed to commands 2 and 3 only after command 1 passes.
+
+### Batch #127 (completed in this iteration)
+- Target scope:
+  - Execute user-requested network unblocking attempt for Android Step 4 blocker with minimal-risk, environment-level checks only.
+- Actions taken:
+  1. Probed outbound reachability over HTTPS (through configured proxy) for all relevant artifact hosts and fallback mirrors:
+     - `dl.google.com`, `repo.maven.apache.org`, `plugins.gradle.org`, `services.gradle.org`, `jitpack.io`, `github.com`, plus mirror candidates.
+  2. Probed outbound reachability over plain HTTP for baseline control (`repo.maven.apache.org`, `services.gradle.org`, `example.com`).
+  3. Compared results with previous no-proxy attempt (Batch #125) to confirm whether any route is currently usable.
+
+## Verification for batch #127
+- `curl -I --max-time 15 https://dl.google.com/dl/android/maven2/`
+- `curl -I --max-time 15 https://repo.maven.apache.org/maven2/`
+- `curl -I --max-time 15 https://plugins.gradle.org/m2/`
+- `curl -I --max-time 15 https://services.gradle.org/distributions/`
+- `curl -I --max-time 15 https://jitpack.io`
+- `curl -I --max-time 15 https://github.com`
+- `curl -I --max-time 15 https://raw.githubusercontent.com`
+- `curl -I --max-time 15 https://maven.aliyun.com/repository/google/`
+- `curl -I --max-time 15 https://maven.aliyun.com/repository/central/`
+- `curl -I --max-time 15 https://mirrors.cloud.tencent.com/nexus/repository/maven-public/`
+- `curl -I --max-time 15 http://repo.maven.apache.org/maven2/`
+- `curl -I --max-time 15 http://services.gradle.org/distributions/`
+- `curl -I --max-time 15 http://example.com`
+
+## Result
+- HTTPS via proxy fails uniformly for all tested domains with:
+  - `curl: (56) CONNECT tunnel failed, response 403`
+  - `HTTP/1.1 403 Forbidden`
+- HTTP requests also return `HTTP/1.1 403 Forbidden`.
+- Together with Batch #125 (no-proxy path = `Network is unreachable`), this confirms there is currently **no working outbound route** to artifact repositories in this environment.
+- Phase A / Step 4 remains blocked at command 1 (`gradle :app:tasks`) by external network policy.
+
+## Next step
+- Infrastructure-level unblock required (outside repository code):
+  1. Either allow proxy CONNECT egress to required artifact domains,
+  2. or provide direct egress route.
+- After network route is restored, re-run Step 4 strictly in order:
+  1. `gradle :app:tasks`
+  2. `gradle :app:assembleDebug`
+  3. `gradle :app:lintDebug`
+
+### Batch #128 (completed in this iteration)
+- Target scope:
+  - Continue after confirmed external network blocker, preparing a deterministic post-unblock execution path for Android Phase A / Step 4.
+- Actions taken:
+  1. Added a dedicated sequential runner script:
+     - `android/dutytracker_src/app/scripts/run_phase_a_step4.sh`
+  2. Script enforces strict order and stop-on-fail behavior for:
+     - `gradle :app:tasks`
+     - `gradle :app:assembleDebug`
+     - `gradle :app:lintDebug`
+  3. Added README usage snippet for the new script (Linux/macOS path with JDK 17).
+
+## Verification for batch #128
+- `bash -n android/dutytracker_src/app/scripts/run_phase_a_step4.sh`
+- `JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2 PATH=/root/.local/share/mise/installs/java/17.0.2/bin:$PATH android/dutytracker_src/app/scripts/run_phase_a_step4.sh`
+- `rg -n "run_phase_a_step4.sh|Быстрый последовательный прогон Step 4" android/dutytracker_src/app/README.md`
+
+## Result
+- Script is ready and executable for immediate use once network/proxy is unblocked.
+- In current environment, script correctly stops at step 1 due to the same external dependency-resolution blocker.
+- Phase A progress remains:
+  - done: `3`
+  - remaining: `1`
+
+## Next step
+- After user-side network/proxy setup, run:
+  - `cd android/dutytracker_src/app && export JAVA_HOME=/path/to/jdk17 && export PATH="$JAVA_HOME/bin:$PATH" && ./scripts/run_phase_a_step4.sh`
+- If script completes, mark Phase A / Step 4 as done (`4/4`).
+
+### Batch #129 (completed in this iteration)
+- Target scope:
+  - Continue Phase A / Step 4 using the deterministic runner introduced in Batch #128.
+- Actions taken:
+  1. Executed `android/dutytracker_src/app/scripts/run_phase_a_step4.sh` with explicit JDK 17.
+  2. Verified gate result before any further action.
+
+## Verification for batch #129
+- `JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2 PATH=/root/.local/share/mise/installs/java/17.0.2/bin:$PATH android/dutytracker_src/app/scripts/run_phase_a_step4.sh`
+
+## Result
+- Runner correctly stops at step `1/3` (`gradle :app:tasks`) due to unchanged AGP/plugin resolution failure:
+  - `Plugin [id: 'com.android.application', version: '8.6.0'] was not found ...`
+- Sequential rule preserved by script design: steps `2/3` and `3/3` are not executed while step `1/3` is red.
+- Phase A progress remains:
+  - done: `3`
+  - remaining: `1`
+
+## Next step
+- Re-run the same runner immediately after network/proxy unblock until step `1/3` turns green, then it will automatically continue to `2/3` and `3/3`.
