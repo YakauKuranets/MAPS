@@ -32,12 +32,69 @@
 - В **debug** сборке разрешён HTTP (cleartext) через `network_security_config.xml` в `src/debug/`.
 - В **release** сборке HTTP запрещён — нужно HTTPS.
 
-## Если Android Studio просит Gradle Wrapper
-В этом архиве нет `gradlew`/`gradle-wrapper.jar`.
-Самый простой путь:
-1) Создай новый проект **Empty Activity** в Android Studio.
-2) Выставь package `com.mapv12.dutytracker`.
-3) Замени у нового проекта папку `app/src/` и `app/build.gradle.kts` на файлы из этого архива.
+## Gradle CLI (важно про wrapper в этом репозитории)
+
+В проекте есть `gradlew` и `gradlew.bat`, но они работают **по-разному**:
+- `gradlew` (Unix) — это минимальный shim, который просто вызывает системный `gradle`.
+- `gradlew.bat` (Windows) — bootstrap-скрипт, который скачивает Gradle distribution по `distributionUrl` из `gradle-wrapper.properties`.
+
+Это значит, что на Linux/macOS нужен установленный локально Gradle **8.7**,
+а на Windows нужен сетевой доступ к `services.gradle.org` для первичной загрузки архива Gradle.
+
+### Требования
+- **JDK 17** (`JAVA_HOME` должен указывать на JDK 17; на JDK 25 сборка падает).
+- **Android SDK** (Platform/Build Tools под целевой API проекта).
+- Для Windows bootstrap и некоторых CI-окружений — доступ к `https://services.gradle.org`.
+- Для Android-плагина/зависимостей — доступ к Google/Maven Central репозиториям.
+
+### local.properties через шаблон
+В каталоге проекта есть шаблон `local.properties.example`.
+
+1. Скопируй шаблон в `local.properties`.
+2. Укажи корректный путь к локальному Android SDK (`sdk.dir=...`).
+
+Примеры:
+- Linux/macOS: `sdk.dir=/Users/<user>/Library/Android/sdk` или `sdk.dir=/home/<user>/Android/Sdk`
+- Windows: `sdk.dir=C\Users\<user>\AppData\Local\Android\Sdk`
+
+### CLI-команды
+
+#### Linux/macOS (через системный Gradle)
+```bash
+cd android/dutytracker_src/app
+export JAVA_HOME=/path/to/jdk17
+export PATH="$JAVA_HOME/bin:$PATH"
+gradle --version
+gradle :app:tasks
+gradle :app:assembleDebug
+gradle :app:lintDebug
+```
+
+#### Быстрый последовательный прогон Step 4 (Linux/macOS)
+```bash
+cd android/dutytracker_src/app
+export JAVA_HOME=/path/to/jdk17
+export PATH="$JAVA_HOME/bin:$PATH"
+./scripts/run_phase_a_step4.sh
+```
+
+#### Windows (PowerShell, через gradlew.bat bootstrap)
+```powershell
+cd android\dutytracker_src\app
+.\gradlew.bat --version
+.\gradlew.bat :app:tasks
+.\gradlew.bat :app:assembleDebug
+.\gradlew.bat :app:lintDebug
+```
+
+#### CI
+```bash
+cd android/dutytracker_src/app
+JAVA_HOME=/path/to/jdk17 gradle --no-daemon :app:tasks :app:assembleDebug :app:lintDebug
+```
+
+> Если сборка падает на plugin resolution (`com.android.application`) или на скачивании Gradle,
+> сначала проверь доступность `services.gradle.org`, `dl.google.com` и `repo.maven.apache.org`.
 
 ## SOS
 В проекте backend сейчас SOS реализован для бота (`/api/duty/bot/sos`).
