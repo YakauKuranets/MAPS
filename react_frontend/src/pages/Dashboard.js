@@ -10,7 +10,17 @@ import PendingRequestsPanel from '../components/PendingRequestsPanel';
 import SmartFilterPanel from '../components/SmartFilterPanel';
 import CyberHUD from '../components/CyberHUD';
 import AssetRiskGraphPanel from '../components/AssetRiskGraphPanel';
+import IdentityGraphPanel from '../components/IdentityGraphPanel';
 import useMapStore from '../store/useMapStore';
+
+const mockData = {
+  alias: 'apt-ghost',
+  connections: [
+    { entity: 'bc1q7x...f93k', type: 'CRYPTO_WALLET', relation: 'RECEIVED_FUNDS' },
+    { entity: 'UTC+3 (based on activity hours and slang)', type: 'TIMEZONE', relation: 'OPERATES_IN' },
+    { entity: '0xDEADBEEF_PGP', type: 'PGP_KEY', relation: 'SIGNED_WITH' },
+  ],
+};
 
 export default function Dashboard() {
   const [activeObjectId, setActiveObjectId] = useState(null);
@@ -41,29 +51,62 @@ export default function Dashboard() {
       case 'radar':
         return (
           <>
+            {/* center map stage with gutters */}
             <div className="absolute inset-0">
-              <CommandCenterMap
-                theme={theme}
-                flyToTarget={flyToTarget}
-                onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                onUserClick={(id) => setActiveObjectId(id)}
-                setActiveNode={setActiveNode}
-                filters={filters}
-              />
+              <div className="absolute inset-0 left-64 right-[390px] top-16 bottom-0">
+                <CommandCenterMap
+                  theme={theme}
+                  flyToTarget={flyToTarget}
+                  onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  onUserClick={(id) => setActiveObjectId(id)}
+                  setActiveNode={setActiveNode}
+                  filters={filters}
+                />
+              </div>
             </div>
-            <IncidentFeed theme={theme} />
+
+            {/* right stack */}
+            <div className="absolute right-4 top-20 bottom-4 z-40 w-[370px] space-y-3 pointer-events-none">
+              <div className="pointer-events-auto">
+                <IdentityGraphPanel actorData={mockData} />
+              </div>
+            </div>
+
+            {/* utility overlays, moved away from left rail/right stack collisions */}
+            <div className="absolute left-64 top-20 z-40 pointer-events-auto">
+              <PendingRequestsPanel onFlyToPending={setFlyToTarget} />
+            </div>
+
+            <div className="absolute right-[390px] top-20 z-40 pointer-events-auto">
+              <SmartFilterPanel filters={filters} onFiltersChange={setFilters} />
+            </div>
+
+            <div className="absolute left-64 right-[390px] top-20 z-30 pointer-events-none">
+              <IncidentFeed theme={theme} />
+            </div>
+
             <IncidentChat />
-            <PendingRequestsPanel onFlyToPending={setFlyToTarget} />
-            <SmartFilterPanel filters={filters} onFiltersChange={setFilters} />
           </>
         );
       case 'agents':
-        return <div className={`p-10 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Раздел списка сотрудников (в разработке)</div>;
+        return (
+          <div className={`p-10 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+            Раздел списка сотрудников (в разработке)
+          </div>
+        );
       case 'analytics':
         return (
           <div className="p-6">
-            <h2 className={`mb-4 font-mono text-sm ${theme === 'dark' ? 'text-cyan-300' : 'text-slate-700'}`}>ASSET RISK GRAPH</h2>
+            <h2 className={`mb-4 font-mono text-sm ${theme === 'dark' ? 'text-cyan-300' : 'text-slate-700'}`}>
+              ASSET RISK GRAPH
+            </h2>
             <AssetRiskGraphPanel riskData={assetRiskData} />
+          </div>
+        );
+      case 'settings':
+        return (
+          <div className={`p-10 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+            Раздел настроек (в разработке)
           </div>
         );
       default:
@@ -72,10 +115,9 @@ export default function Dashboard() {
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab} theme={theme} activeNode={activeNode}>
+    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
       <div className={`relative h-full w-full transition-colors duration-500 ${bgClass}`}>
         {renderContent()}
-
 
         {activeChatIncidentId !== null && (
           <IncidentChatPanel

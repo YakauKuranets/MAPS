@@ -1,22 +1,4 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// ПРОБЛЕМА №1 FIX: Явная регистрация GPU-устройств luma.gl v9
-// Без этих импортов tree-shaking вырезает драйверы при production build
-// ═══════════════════════════════════════════════════════════════════════════
-import { luma } from '@luma.gl/core';
-import { WebGLDevice } from '@luma.gl/webgl';
-
-// WebGPU — опциональный, fallback на WebGL если не поддерживается
-let _webgpuAvailable = false;
-try {
-  // eslint-disable-next-line global-require
-  const { WebGPUDevice } = require('@luma.gl/webgpu');
-  luma.registerDevices([WebGPUDevice, WebGLDevice]);
-  _webgpuAvailable = true;
-} catch (_e) {
-  luma.registerDevices([WebGLDevice]);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // ПРОБЛЕМА №3 FIX: Консолидированные импорты из корневых пакетов
 // ═══════════════════════════════════════════════════════════════════════════
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -41,11 +23,32 @@ const INITIAL_VIEW_STATE = {
   longitude: 27.56, latitude: 53.9, zoom: 14, pitch: 60, bearing: -20, maxPitch: 85,
 };
 const INITIAL_VIEW_STATE_MOBILE = { ...INITIAL_VIEW_STATE, zoom: 12.5, pitch: 35 };
-const MAP_STYLE = '/map_style_cyberpunk.json';
+const MAP_STYLE_PRIMARY = '/map_style_cyberpunk.json';
+const MAP_STYLE_FALLBACK = Object.freeze({
+  version: 8,
+  name: 'Fallback OSM Raster',
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: [
+        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '© OpenStreetMap contributors',
+    },
+  },
+  layers: [
+    { id: 'osm', type: 'raster', source: 'osm' },
+  ],
+});
 const DEFAULT_FILTERS = Object.freeze({
   showAgents: true, showCameras: true, showIncidents: true, showPending: true,
 });
 const PULSE_INTERVAL_MS = 66; // ~15fps — достаточно для пульсации, щадит Vega 7
+
+const EMPTY_LIST = Object.freeze([]);
 
 initPmtiles();
 
@@ -80,7 +83,6 @@ const toActiveNodePayload = (s) => s ? {
 } : null;
 
 const DEVICE_PROPS = Object.freeze({
-  type: _webgpuAvailable ? 'best-available' : 'webgl',
   powerPreference: 'high-performance',
 });
 
@@ -107,12 +109,11 @@ export default function CommandCenterMap({ onUserClick, flyToTarget, filters, se
   const showPending = effectiveFilters.showPending;
 
   const agentsMap = useMapStore((s) => s.agents);
-  const agentsData = useMapStore((s) => s.getAgentsArray());
-  const trackPointsData = useMapStore((s) => s.getTracksArray());
-  const threatsData = useMapStore((s) => s.getThreatsArray());
+  const trackPointsMap = useMapStore((s) => s.trackPoints);
+  const threatsMap = useMapStore((s) => s.threatAlerts);
   const incidents = useMapStore((s) => s.incidents);
   const pendingMarkers = useMapStore((s) => s.pendingMarkers);
-  const terminals = useMapStore((s) => s.terminals || s.markers || []);
+  const terminals = useMapStore((s) => s.terminals ?? s.markers ?? EMPTY_LIST);
   const setSelectedObject = useMapStore((s) => s.setSelectedObject);
   const draftMarker = useMapStore((s) => s.draftMarker);
   const addMarker = useMapStore((s) => s.addMarker);
@@ -140,6 +141,12 @@ export default function CommandCenterMap({ onUserClick, flyToTarget, filters, se
   });
   const [viewState, setViewState] = useState(isMobile ? INITIAL_VIEW_STATE_MOBILE : INITIAL_VIEW_STATE);
   const [viewportSize, setViewportSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [mapStyle, setMapStyle] = useState(MAP_STYLE_PRIMARY);
+  const [mapStyleFallbackActive, setMapStyleFallbackActive] = useState(false);
+
+  const agentsData = useMemo(() => Object.values(agentsMap || {}), [agentsMap]);
+  const trackPointsData = useMemo(() => Object.values(trackPointsMap || {}), [trackPointsMap]);
+  const threatsData = useMemo(() => Object.values(threatsMap || {}), [threatsMap]);
 
   // ═══ ПРОБЛЕМА №2 FIX: flyToTarget — ref предотвращает повторные fly ═══
   const lastFlyRef = useRef(null);
@@ -372,7 +379,17 @@ export default function CommandCenterMap({ onUserClick, flyToTarget, filters, se
   return (
     <div className="absolute inset-0">
       <DeckGL viewState={viewState} onViewStateChange={handleViewStateChange} controller layers={layers} deviceProps={DEVICE_PROPS} _useDevicePixels onClick={handleDeckClick}>
-        <Map mapStyle={MAP_STYLE} reuseMaps dragRotate={!isMobile}>
+        <Map
+          mapStyle={mapStyle}
+          reuseMaps
+          dragRotate={!isMobile}
+          onError={() => {
+            if (!mapStyleFallbackActive) {
+              setMapStyle(MAP_STYLE_FALLBACK);
+              setMapStyleFallbackActive(true);
+            }
+          }}
+        >
           {showCameras && normalizedTerminals.map((t, i) => (
             <Marker key={t.id || `t-${i}`} longitude={t.lon} latitude={t.lat} anchor="center">
               <button type="button" onClick={(e) => {
@@ -389,6 +406,13 @@ export default function CommandCenterMap({ onUserClick, flyToTarget, filters, se
           ))}
         </Map>
       </DeckGL>
+
+
+      {mapStyleFallbackActive && (
+        <div className="pointer-events-none absolute left-1/2 top-16 z-30 -translate-x-1/2 rounded border border-amber-400/40 bg-amber-950/60 px-3 py-1 text-xs text-amber-200">
+          Карта переключена на fallback-стиль (OSM), т.к. офлайн PMTiles недоступен.
+        </div>
+      )}
 
       {activeTerminal && <TacticalGridDashboard terminal={activeTerminal} onClose={() => setActiveTerminal(null)} />}
 

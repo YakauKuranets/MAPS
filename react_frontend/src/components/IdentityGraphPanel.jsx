@@ -49,7 +49,7 @@ export default function IdentityGraphPanel({ actorData }) {
   }, [actorData, showSensitive]);
 
   return (
-    <div className="absolute right-4 top-20 z-50 flex h-[430px] w-96 flex-col overflow-hidden rounded-lg border border-cyan-900/50 bg-black/80 shadow-[0_0_30px_rgba(0,240,255,0.1)] backdrop-blur-md">
+    <div className="flex h-[430px] w-full flex-col overflow-hidden rounded-lg border border-cyan-900/50 bg-black/80 shadow-[0_0_30px_rgba(0,240,255,0.1)] backdrop-blur-md">
       <div className="flex items-center justify-between border-b border-cyan-900/50 bg-gradient-to-r from-cyan-900/40 to-transparent p-2">
         <span className="font-mono text-[10px] tracking-widest text-cyan-500">OSINT_KRAKEN // IDENTITY_GRAPH</span>
         <span className="animate-pulse text-[10px] text-red-500">LIVE_TRACKING</span>
@@ -69,7 +69,7 @@ export default function IdentityGraphPanel({ actorData }) {
           <ForceGraph2D
             ref={graphRef}
             graphData={graphData}
-            width={382}
+            width={362}
             height={372}
             nodeColor={(node) => node.color}
             nodeRelSize={6}

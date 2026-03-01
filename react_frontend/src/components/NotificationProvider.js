@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, ShieldAlert, CheckCircle, Info } from 'lucide-react';
 
-const NotificationContext = createContext();
+const NotificationContext = createContext({
+    addNotify: () => {},
+});
 
 export const NotificationProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
@@ -43,4 +45,4 @@ export const NotificationProvider = ({ children }) => {
     );
 };
 
-export const useNotify = () => useContext(NotificationContext);
+export const useNotify = () => useContext(NotificationContext) || { addNotify: () => {} };

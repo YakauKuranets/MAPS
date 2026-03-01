@@ -1,19 +1,8 @@
 import React from 'react';
-import { Map, Users, Settings, Plus } from 'lucide-react';
+import { Map, Users, LineChart, Settings, Plus } from 'lucide-react';
 import TopBar from './TopBar';
 import CTIConsole from './CTIConsole';
-import IdentityGraphPanel from './IdentityGraphPanel';
 import useMapStore from '../store/useMapStore';
-
-
-const mockData = {
-  alias: 'apt-ghost',
-  connections: [
-    { entity: 'bc1q7x...f93k', type: 'CRYPTO_WALLET', relation: 'RECEIVED_FUNDS' },
-    { entity: 'UTC+3 (based on activity hours and slang)', type: 'TIMEZONE', relation: 'OPERATES_IN' },
-    { entity: '0xDEADBEEF_PGP', type: 'PGP_KEY', relation: 'SIGNED_WITH' },
-  ],
-};
 
 function NavButton({ active, icon, label, onClick }) {
   return (
@@ -49,32 +38,34 @@ export default function DashboardLayout({ children, activeTab, onTabChange }) {
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-black text-slate-100">
-      {children}
+      <TopBar />
 
-      <IdentityGraphPanel actorData={mockData} />
-
-      <div className="pointer-events-none absolute inset-0 z-40">
-        <TopBar />
-
-        <aside className="pointer-events-auto absolute left-4 top-20 w-56 rounded-2xl border border-white/10 bg-black/40 p-3 backdrop-blur-cyber">
-          <div className="mb-3 text-[10px] font-black uppercase tracking-[0.25em] text-cyber-blue">Cyber Panel</div>
-          <div className="space-y-2">
-            <NavButton active={activeTab === 'radar'} onClick={() => onTabChange('radar')} icon={<Map className="h-4 w-4" />} label="Radar" />
-            <NavButton active={activeTab === 'agents'} onClick={() => onTabChange('agents')} icon={<Users className="h-4 w-4" />} label="Agents" />
-            <NavButton active={activeTab === 'settings'} onClick={() => onTabChange('settings')} icon={<Settings className="h-4 w-4" />} label="Settings" />
-          </div>
-
-          <CTIConsole />
-
-          <button
-            onClick={handleManualAdd}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-alert-yellow/40 bg-alert-yellow/10 px-3 py-2 text-xs font-bold uppercase tracking-wider text-alert-yellow transition hover:bg-alert-yellow/20"
-          >
-            <Plus className="h-4 w-4" />
-            Add Object
-          </button>
-        </aside>
+      {/* Main stage with reserved side gutters */}
+      <div className="absolute inset-0 pt-14">
+        {children}
       </div>
+
+      {/* Left operator rail */}
+      <aside className="pointer-events-auto absolute left-4 top-20 bottom-4 z-40 w-56 rounded-2xl border border-white/10 bg-black/45 p-3 backdrop-blur-cyber overflow-y-auto">
+        <div className="mb-3 text-[10px] font-black uppercase tracking-[0.25em] text-cyber-blue">Киберпанель</div>
+
+        <div className="space-y-2">
+          <NavButton active={activeTab === 'radar'} onClick={() => onTabChange('radar')} icon={<Map className="h-4 w-4" />} label="Radar" />
+          <NavButton active={activeTab === 'agents'} onClick={() => onTabChange('agents')} icon={<Users className="h-4 w-4" />} label="Agents" />
+          <NavButton active={activeTab === 'analytics'} onClick={() => onTabChange('analytics')} icon={<LineChart className="h-4 w-4" />} label="Analytics" />
+          <NavButton active={activeTab === 'settings'} onClick={() => onTabChange('settings')} icon={<Settings className="h-4 w-4" />} label="Settings" />
+        </div>
+
+        <CTIConsole />
+
+        <button
+          onClick={handleManualAdd}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-alert-yellow/40 bg-alert-yellow/10 px-3 py-2 text-xs font-bold uppercase tracking-wider text-alert-yellow transition hover:bg-alert-yellow/20"
+        >
+          <Plus className="h-4 w-4" />
+          Add Object
+        </button>
+      </aside>
     </div>
   );
 }
