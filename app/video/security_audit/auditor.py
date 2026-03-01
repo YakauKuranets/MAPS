@@ -35,14 +35,16 @@ class SecurityAuditor:
     Использует многопоточность, прокси и интеллектуальные задержки.
     """
 
-    def __init__(self,
-                 target: TargetDevice,
-                 proxy_pool: ProxyPool,
-                 credential_gen: CredentialGenerator,
-                 username: str = 'admin',
-                 auth_type: str = 'basic',
-                 threads: int = 5,
-                 log_callback: Optional[Callable] = None):
+    def __init__(
+        self,
+        target: TargetDevice,
+        proxy_pool: ProxyPool,
+        credential_gen: CredentialGenerator,
+        username: str = "admin",
+        auth_type: str = "basic",
+        threads: int = 5,
+        log_callback: Optional[Callable] = None,
+    ):
         self.target = target
         self.proxy_pool = proxy_pool
         self.credential_gen = credential_gen
@@ -56,31 +58,37 @@ class SecurityAuditor:
 
     def _build_url(self) -> str:
         base = f"http{'s' if getattr(self.target, 'ssl', False) else ''}://{self.target.ip}:{self.target.port}"
-        endpoint = '/cgi-bin/userLogin'  # можно сделать настраиваемым
+        endpoint = "/cgi-bin/userLogin"  # можно сделать настраиваемым
         return base + endpoint
 
     def _try_auth(self, password: str, proxy: ProxyNode) -> Optional[AuditAttempt]:
         url = self._build_url()
-        proxies = {'http': proxy.url, 'https': proxy.url}
+        proxies = {"http": proxy.url, "https": proxy.url}
         headers = RequestBehavior.headers()
         start = time.time()
         try:
-            if self.auth_type == 'basic':
+            if self.auth_type == "basic":
                 auth = HTTPBasicAuth(self.username, password)
-                r = requests.get(url, auth=auth, proxies=proxies, headers=headers, timeout=10)
-            elif self.auth_type == 'digest':
+                r = requests.get(
+                    url, auth=auth, proxies=proxies, headers=headers, timeout=10
+                )
+            elif self.auth_type == "digest":
                 auth = HTTPDigestAuth(self.username, password)
-                r = requests.get(url, auth=auth, proxies=proxies, headers=headers, timeout=10)
-            elif self.auth_type == 'form':
-                data = {'username': self.username, 'password': password}
-                r = requests.post(url, data=data, proxies=proxies, headers=headers, timeout=10)
+                r = requests.get(
+                    url, auth=auth, proxies=proxies, headers=headers, timeout=10
+                )
+            elif self.auth_type == "form":
+                data = {"username": self.username, "password": password}
+                r = requests.post(
+                    url, data=data, proxies=proxies, headers=headers, timeout=10
+                )
             else:
                 return None
 
             elapsed = time.time() - start
             success = False
             if r.status_code == 200:
-                if 'invalid' not in r.text.lower() and 'error' not in r.text.lower():
+                if "invalid" not in r.text.lower() and "error" not in r.text.lower():
                     success = True
             return AuditAttempt(
                 success=success,
@@ -89,7 +97,7 @@ class SecurityAuditor:
                 response_time=elapsed,
                 status_code=r.status_code,
                 auth_type=self.auth_type,
-                response_sample=r.text[:200]
+                response_sample=r.text[:200],
             )
         except Exception as e:
             self.log(f"Ошибка с прокси {proxy.url}: {e}")

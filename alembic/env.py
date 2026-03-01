@@ -1,5 +1,6 @@
 from __future__ import annotations
-import os, sys
+import os
+import sys
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool, text
 from alembic import context
@@ -16,16 +17,19 @@ if config.config_file_name is not None:
 
 target_metadata = None
 
+
 def _get_target_metadata():
     global target_metadata
     if target_metadata is not None:
         return target_metadata
     from app import create_app
     from app.extensions import db
+
     app = create_app()
     with app.app_context():
         target_metadata = db.metadata
     return target_metadata
+
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
@@ -38,6 +42,7 @@ def run_migrations_offline() -> None:
     )
     with context.begin_transaction():
         context.run_migrations()
+
 
 def run_migrations_online() -> None:
     connectable = engine_from_config(
@@ -56,6 +61,7 @@ def run_migrations_online() -> None:
         )
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

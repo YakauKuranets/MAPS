@@ -19,7 +19,9 @@ class DarknetPost(db.Model):
     content = db.Column(db.Text, nullable=True)
     source = db.Column(db.String(255), nullable=True)
     indicators = db.Column(db.JSON)
-    discovered_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    discovered_at = db.Column(
+        db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
 
     analyzed = db.Column(db.Boolean, default=False)
     analysis_result = db.Column(db.JSON)
@@ -37,6 +39,10 @@ class LeakedCredential(db.Model):
     domain = db.Column(db.String(255), nullable=True, index=True)
     username = db.Column(db.String(255), nullable=True)
     password_hash = db.Column(db.String(512), nullable=True)
-    discovered_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    discovered_at = db.Column(
+        db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
 
-    post = db.relationship("DarknetPost", backref=db.backref("credentials", lazy="dynamic"))
+    post = db.relationship(
+        "DarknetPost", backref=db.backref("credentials", lazy="dynamic")
+    )

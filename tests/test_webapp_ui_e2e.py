@@ -15,13 +15,17 @@ def test_webapp_form_sends_expected_json(client):
         def handle_route(route):
             sent["url"] = route.request.url
             sent["body"] = route.request.post_data_json
-            route.fulfill(status=200, content_type="application/json", body='{"ok":true}')
+            route.fulfill(
+                status=200, content_type="application/json", body='{"ok":true}'
+            )
 
         page.route("**/api/bot/webapp_submit", handle_route)
         page.set_content(page_html)
         page.add_init_script(
             """
-            window.Telegram = { WebApp: { initData: 'hash=fake', themeParams: {}, ready(){}, close(){} } };
+            window.Telegram = {
+              WebApp: { initData: 'hash=fake', themeParams: {}, ready(){}, close(){} }
+            };
             """
         )
         page.fill("#description", "Smoke text")
@@ -41,7 +45,8 @@ def test_webapp_form_sends_expected_json(client):
             form.dispatchEvent(evt);
             """
         )
-        # fallback: call fetch manually with expected payload (since Leaflet click is hard to emulate in unit DOM)
+        # fallback: call fetch manually with expected payload
+        # (since Leaflet click is hard to emulate in unit DOM)
         page.evaluate(
             """
             fetch('/api/bot/webapp_submit', {

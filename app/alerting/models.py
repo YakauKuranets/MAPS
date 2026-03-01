@@ -14,7 +14,9 @@ class AlertRule(db.Model):
     threshold = db.Column(db.Float, nullable=True)
     channel = db.Column(db.String(50), nullable=False, default="websocket")
     enabled = db.Column(db.Boolean, nullable=False, default=True, index=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
 
     def to_dict(self) -> dict:
         return {
@@ -32,10 +34,17 @@ class AlertHistory(db.Model):
     __tablename__ = "alert_history"
 
     id = db.Column(db.Integer, primary_key=True)
-    rule_id = db.Column(db.Integer, db.ForeignKey("alert_rules.id"), nullable=False, index=True)
+    rule_id = db.Column(
+        db.Integer, db.ForeignKey("alert_rules.id"), nullable=False, index=True
+    )
     message = db.Column(db.Text, nullable=False)
     severity = db.Column(db.String(20), nullable=False, default="high")
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
 
     rule = db.relationship("AlertRule", backref=db.backref("history", lazy="dynamic"))
 

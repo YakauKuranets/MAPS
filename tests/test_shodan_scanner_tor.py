@@ -96,7 +96,9 @@ def test_scan_shodan_for_cameras_use_tor(monkeypatch):
 
     monkeypatch.setattr(scanner, "_build_shodan_client", fake_build_client)
 
-    result = scanner.scan_shodan_for_cameras(query='product:"Hikvision"', limit=10, use_tor=True)
+    result = scanner.scan_shodan_for_cameras(
+        query='product:"Hikvision"', limit=10, use_tor=True
+    )
     assert "Найдено 1 устройств" in result
     assert created == {"tor": 1, "renew": 1, "close": 1, "tor_session_used": True}
     assert fake_db_session.commits == 1

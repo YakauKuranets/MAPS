@@ -16,7 +16,11 @@ def get_version():
     if not active:
         return jsonify({"error": "No active wordlist"}), 404
 
-    updated = active.updated_at.isoformat() if active.updated_at else active.created_at.isoformat()
+    updated = (
+        active.updated_at.isoformat()
+        if active.updated_at
+        else active.created_at.isoformat()
+    )
     return jsonify(
         {
             "name": active.name,

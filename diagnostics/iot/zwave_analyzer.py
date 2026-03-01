@@ -51,12 +51,17 @@ class ZWaveNetworkAnalyzer:
         state_ready = getattr(self.network, "STATE_READY", None)
         if state_ready is not None:
             while time.time() - started < max(timeout, 1):
-                if getattr(self.network, "state", None) is not None and self.network.state >= state_ready:
+                if (
+                    getattr(self.network, "state", None) is not None
+                    and self.network.state >= state_ready
+                ):
                     break
                 time.sleep(1)
 
         network_nodes = getattr(self.network, "nodes", {}) or {}
-        iterable = network_nodes.values() if isinstance(network_nodes, dict) else network_nodes
+        iterable = (
+            network_nodes.values() if isinstance(network_nodes, dict) else network_nodes
+        )
         for node in iterable:
             nodes.append(
                 {

@@ -59,7 +59,7 @@ class RadioHunterEngine:
         limit: int = 10,
     ) -> List[Dict]:
         """Find cell towers with anomalous characteristics.
-        
+
         Args:
             min_signal: Minimum signal strength threshold (suspicious if too high)
             min_hunters: Minimum number of distinct agents that intercepted the tower
@@ -69,7 +69,9 @@ class RadioHunterEngine:
         MATCH (agent:Operative)-[r:INTERCEPTED_SIGNAL]->(tower:CellNode)
         WHERE tower.signal_strength > $min_signal 
           AND tower.registered_provider = 'UNKNOWN'
-        WITH tower, count(DISTINCT agent) as hunter_count, collect(r.timestamp) as timestamps
+        WITH tower,
+             count(DISTINCT agent) as hunter_count,
+             collect(r.timestamp) as timestamps
         WHERE hunter_count >= $min_hunters
         RETURN tower.id as tower_id,
                tower.location_lat as lat,

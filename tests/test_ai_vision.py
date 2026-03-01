@@ -14,14 +14,18 @@ def _build_init_data(bot_token: str, user: dict) -> str:
         "query_id": "AAEAAAE",
         "user": json.dumps(user, separators=(",", ":"), ensure_ascii=False),
     }
-    data_check = "\n".join(f"{k}={v}" for k, v in sorted(data.items(), key=lambda kv: kv[0]))
+    data_check = "\n".join(
+        f"{k}={v}" for k, v in sorted(data.items(), key=lambda kv: kv[0])
+    )
     secret = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
     sig = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
     data["hash"] = sig
     return urlencode(data)
 
 
-def test_ai_vision_updates_pending_and_broadcasts_incident_updated(monkeypatch, tmp_path):
+def test_ai_vision_updates_pending_and_broadcasts_incident_updated(
+    monkeypatch, tmp_path
+):
     db_path = tmp_path / "ai_vision.db"
     monkeypatch.setenv("DATABASE_URI", f"sqlite:///{db_path}")
 
@@ -37,7 +41,10 @@ def test_ai_vision_updates_pending_and_broadcasts_incident_updated(monkeypatch, 
     )
 
     events = []
-    monkeypatch.setattr("app.bot.routes.broadcast_event_sync", lambda event, payload: events.append((event, payload)))
+    monkeypatch.setattr(
+        "app.bot.routes.broadcast_event_sync",
+        lambda event, payload: events.append((event, payload)),
+    )
 
     class ImmediateThread:
         def __init__(self, target=None, args=(), daemon=None):
@@ -49,7 +56,9 @@ def test_ai_vision_updates_pending_and_broadcasts_incident_updated(monkeypatch, 
 
     monkeypatch.setattr("app.bot.routes.Thread", ImmediateThread)
 
-    init_data = _build_init_data("bot-secret", {"id": 12345, "username": "miniuser", "last_name": "Иванов"})
+    init_data = _build_init_data(
+        "bot-secret", {"id": 12345, "username": "miniuser", "last_name": "Иванов"}
+    )
 
     with app.app_context():
         client = app.test_client()

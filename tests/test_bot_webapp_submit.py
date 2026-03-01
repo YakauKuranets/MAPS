@@ -12,7 +12,9 @@ def _build_init_data(bot_token: str, user: dict) -> str:
         "query_id": "AAEAAAE",
         "user": json.dumps(user, separators=(",", ":"), ensure_ascii=False),
     }
-    data_check = "\n".join(f"{k}={v}" for k, v in sorted(data.items(), key=lambda kv: kv[0]))
+    data_check = "\n".join(
+        f"{k}={v}" for k, v in sorted(data.items(), key=lambda kv: kv[0])
+    )
     secret = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
     sig = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
     data["hash"] = sig
@@ -24,7 +26,12 @@ def test_webapp_submit_rejects_invalid_init_data(client, app):
 
     rv = client.post(
         "/api/bot/webapp_submit",
-        json={"category": "Охрана", "description": "test", "coords": {"lat": 53.9, "lon": 27.56}, "initData": "hash=fake"},
+        json={
+            "category": "Охрана",
+            "description": "test",
+            "coords": {"lat": 53.9, "lon": 27.56},
+            "initData": "hash=fake",
+        },
     )
     assert rv.status_code == 403
 
@@ -32,7 +39,9 @@ def test_webapp_submit_rejects_invalid_init_data(client, app):
 def test_webapp_submit_creates_pending_with_valid_init_data(client, app):
     token = "bot-secret"
     app.config["TELEGRAM_BOT_TOKEN"] = token
-    init_data = _build_init_data(token, {"id": 12345, "username": "miniuser", "last_name": "Иванов"})
+    init_data = _build_init_data(
+        token, {"id": 12345, "username": "miniuser", "last_name": "Иванов"}
+    )
 
     rv = client.post(
         "/api/bot/webapp_submit",

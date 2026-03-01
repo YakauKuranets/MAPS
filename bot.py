@@ -76,7 +76,9 @@ async def _run_webhook(bot: Bot, dp: Dispatcher) -> None:
     webhook_secret = (os.getenv("WEBHOOK_SECRET") or "").strip() or None
     webhook_url = f"{base_url}{webhook_path}"
 
-    await bot.set_webhook(url=webhook_url, secret_token=webhook_secret, drop_pending_updates=True)
+    await bot.set_webhook(
+        url=webhook_url, secret_token=webhook_secret, drop_pending_updates=True
+    )
 
     app = web.Application()
     app["bot"] = bot
@@ -110,7 +112,9 @@ async def main() -> None:
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
     )
 
-    bot = Bot(token=_get_token(), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot = Bot(
+        token=_get_token(), default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+    )
     dp = _build_dispatcher()
 
     webhook_base_url = (os.getenv("WEBHOOK_BASE_URL") or "").strip()

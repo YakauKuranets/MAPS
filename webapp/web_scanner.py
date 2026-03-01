@@ -16,11 +16,17 @@ logger = logging.getLogger(__name__)
 class WebAppScanner:
     """Wrapper around Nuclei and Nikto binaries with result parsing."""
 
-    def __init__(self, nuclei_path: str = "/usr/local/bin/nuclei", nikto_path: str = "/usr/bin/nikto"):
+    def __init__(
+        self,
+        nuclei_path: str = "/usr/local/bin/nuclei",
+        nikto_path: str = "/usr/bin/nikto",
+    ):
         self.nuclei_path = nuclei_path
         self.nikto_path = nikto_path
 
-    def scan_with_nuclei(self, target_url: str, template_type: str = "cves") -> List[Dict]:
+    def scan_with_nuclei(
+        self, target_url: str, template_type: str = "cves"
+    ) -> List[Dict]:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
             output_file = tmp.name
 
@@ -69,7 +75,16 @@ class WebAppScanner:
             output_file = tmp.name
 
         try:
-            cmd = ["perl", self.nikto_path, "-h", target_url, "-Format", "txt", "-o", output_file]
+            cmd = [
+                "perl",
+                self.nikto_path,
+                "-h",
+                target_url,
+                "-Format",
+                "txt",
+                "-o",
+                output_file,
+            ]
             subprocess.run(cmd, capture_output=True, timeout=180, check=False)
 
             findings: list[dict] = []

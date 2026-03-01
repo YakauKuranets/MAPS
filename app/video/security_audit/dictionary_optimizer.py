@@ -32,10 +32,14 @@ class DictionaryOptimizer:
         if not rockyou_path.exists():
             gz_path = self.wordlists_path / "rockyou.txt.gz"
             if gz_path.exists():
-                with gzip.open(gz_path, "rt", encoding="latin-1", errors="ignore") as handle:
+                with gzip.open(
+                    gz_path, "rt", encoding="latin-1", errors="ignore"
+                ) as handle:
                     passwords = handle.readlines()
             else:
-                logger.warning("rockyou dictionary not found in %s", self.wordlists_path)
+                logger.warning(
+                    "rockyou dictionary not found in %s", self.wordlists_path
+                )
                 self.cached_passwords = self._get_fallback_dictionary()
                 return self.cached_passwords
         else:
@@ -75,17 +79,49 @@ class DictionaryOptimizer:
     def get_wifi_specific_dictionary(self) -> List[str]:
         """Router and Wi‑Fi specific weak candidates."""
         wifi_dict = [
-            "admin", "password", "12345678", "wireless", "network",
-            "linksys", "netgear", "dlink", "tp-link", "asus",
-            "12345670", "12345678", "00000000", "11111111", "22222222",
-            "33333333", "44444444", "55555555", "66666666", "88888888",
-            "default", "guest", "changeme", "password123", "admin123",
+            "admin",
+            "password",
+            "12345678",
+            "wireless",
+            "network",
+            "linksys",
+            "netgear",
+            "dlink",
+            "tp-link",
+            "asus",
+            "12345670",
+            "12345678",
+            "00000000",
+            "11111111",
+            "22222222",
+            "33333333",
+            "44444444",
+            "55555555",
+            "66666666",
+            "88888888",
+            "default",
+            "guest",
+            "changeme",
+            "password123",
+            "admin123",
         ]
         return list(dict.fromkeys(wifi_dict))
 
     def _get_fallback_dictionary(self) -> List[str]:
         return [
-            "admin", "12345678", "password", "1234567890", "qwertyui",
-            "admin123", "letmein", "welcome", "monkey", "dragon",
-            "football", "baseball", "master", "superman", "batman",
+            "admin",
+            "12345678",
+            "password",
+            "1234567890",
+            "qwertyui",
+            "admin123",
+            "letmein",
+            "welcome",
+            "monkey",
+            "dragon",
+            "football",
+            "baseball",
+            "master",
+            "superman",
+            "batman",
         ]

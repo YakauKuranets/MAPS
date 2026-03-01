@@ -58,6 +58,7 @@ class SyndicateUserbot:
 
         try:
             from telethon import TelegramClient
+
             self._client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
             await self._client.start()
             me = await self._client.get_me()
@@ -83,7 +84,9 @@ class SyndicateUserbot:
                 iocs[name] = list(set(matches))
         return iocs
 
-    async def _enrich_actor_profile(self, sender_id: int, text: str, chat_title: str) -> dict:
+    async def _enrich_actor_profile(
+        self, sender_id: int, text: str, chat_title: str
+    ) -> dict:
         """Enrich threat actor profile with intercepted data."""
         iocs = self._extract_iocs(text)
         profile = {
@@ -111,7 +114,11 @@ class SyndicateUserbot:
             "extension": file_path.suffix,
             "analyzed_at": datetime.now(timezone.utc).isoformat(),
         }
-        logger.warning("[SYNDICATE] Leak file analyzed: %s (%d bytes)", file_path.name, stat.st_size)
+        logger.warning(
+            "[SYNDICATE] Leak file analyzed: %s (%d bytes)",
+            file_path.name,
+            stat.st_size,
+        )
         return result
 
     async def _handle_message(self, event) -> None:
@@ -139,7 +146,12 @@ class SyndicateUserbot:
             ]
             if mime in interesting_mimes:
                 LEAKS_DIR.mkdir(parents=True, exist_ok=True)
-                file_path = LEAKS_DIR / f"{sender_id}_{event.id}{Path(event.document.attributes[0].file_name).suffix if event.document.attributes else '.bin'}"
+                suffix = (
+                    Path(event.document.attributes[0].file_name).suffix
+                    if event.document.attributes
+                    else ".bin"
+                )
+                file_path = LEAKS_DIR / f"{sender_id}_{event.id}{suffix}"
                 await event.download_media(file=str(file_path))
                 await self._analyze_leak_file(file_path)
 

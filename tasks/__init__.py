@@ -12,14 +12,14 @@ from app.extensions import celery_app, db
 from app.models import PendingMarker
 from app.realtime.broker import get_broker
 from app.alerting import checker as alerting_checker  # noqa: F401
-from app.tasks import reports_delivery as reports_delivery_tasks  # noqa: F401
-from app.tasks import diagnostics_scans as diagnostics_scans_tasks  # noqa: F401
-from app.tasks import threat_intel_tasks as threat_intel_tasks  # noqa: F401
-from app.tasks import siem_tasks as siem_tasks  # noqa: F401
-from app.tasks import diagnostics_tasks as diagnostics_tasks  # noqa: F401
-from app.tasks import ai_mutation_tasks as ai_mutation_tasks  # noqa: F401
-from app.tasks import mutation_testing as mutation_testing_tasks  # noqa: F401
-from app.tasks import operational_tasks as operational_tasks  # noqa: F401
+from tasks import reports_delivery as reports_delivery_tasks  # noqa: F401
+from tasks import diagnostics_scans as diagnostics_scans_tasks  # noqa: F401
+from tasks import threat_intel_tasks as threat_intel_tasks  # noqa: F401
+from tasks import siem_tasks as siem_tasks  # noqa: F401
+from tasks import diagnostics_tasks as diagnostics_tasks  # noqa: F401
+from tasks import ai_mutation_tasks as ai_mutation_tasks  # noqa: F401
+from tasks import mutation_testing as mutation_testing_tasks  # noqa: F401
+from tasks import operational_tasks as operational_tasks  # noqa: F401
 
 
 @celery_app.task(bind=True)
@@ -86,7 +86,9 @@ def process_voice_incident(self, file_path: str, agent_id: int) -> dict[str, Any
         }
 
         broker = get_broker()
-        broker.publish_event("map_updates", {"type": "NEW_INCIDENT", "data": incident_payload})
+        broker.publish_event(
+            "map_updates", {"type": "NEW_INCIDENT", "data": incident_payload}
+        )
 
         return {"ok": True, "incident_id": pending.id, "data": incident_payload}
     except Exception as exc:

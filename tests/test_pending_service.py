@@ -10,7 +10,15 @@ from app.services.pending_service import (
 
 
 def _create_pending(name="P1", lat=1.0, lon=2.0):
-    p = PendingMarker(name=name, lat=lat, lon=lon, notes="note", status="new", link="", category="cat1")
+    p = PendingMarker(
+        name=name,
+        lat=lat,
+        lon=lon,
+        notes="note",
+        status="new",
+        link="",
+        category="cat1",
+    )
     db.session.add(p)
     db.session.commit()
     return p
@@ -38,6 +46,7 @@ def test_approve_pending_creates_address_and_history(db_session, monkeypatch):
             return True
 
     import app.services.pending_service as pending_service
+
     monkeypatch.setattr(pending_service, "get_broker", lambda: BrokerStub())
 
     result = approve_pending(p.id)
@@ -78,6 +87,7 @@ def test_reject_pending_creates_history_and_removes(db_session, monkeypatch):
             return True
 
     import app.services.pending_service as pending_service
+
     monkeypatch.setattr(pending_service, "get_broker", lambda: BrokerStub())
 
     result = reject_pending(p.id)

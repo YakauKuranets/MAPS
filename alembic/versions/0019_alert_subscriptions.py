@@ -27,8 +27,15 @@ def upgrade() -> None:
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_alert_subscriptions_email", "alert_subscriptions", ["email"], unique=False)
-    op.create_index("ix_alert_subscriptions_is_active", "alert_subscriptions", ["is_active"], unique=False)
+    op.create_index(
+        "ix_alert_subscriptions_email", "alert_subscriptions", ["email"], unique=False
+    )
+    op.create_index(
+        "ix_alert_subscriptions_is_active",
+        "alert_subscriptions",
+        ["is_active"],
+        unique=False,
+    )
 
 
 def downgrade() -> None:

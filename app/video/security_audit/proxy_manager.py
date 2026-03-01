@@ -3,6 +3,7 @@ import aiohttp
 from typing import List, Optional, Dict
 from dataclasses import dataclass
 
+
 @dataclass
 class ProxyNode:
     url: str
@@ -10,8 +11,14 @@ class ProxyNode:
     avg_response_time: float = 0.0
     is_valid: bool = True
 
+
 class AsyncProxyPool:
-    def __init__(self, initial_proxies: List[str] = None, max_failures: int = 3, check_url: str = 'http://httpbin.org/ip'):
+    def __init__(
+        self,
+        initial_proxies: List[str] = None,
+        max_failures: int = 3,
+        check_url: str = "http://httpbin.org/ip",
+    ):
         self.proxies: Dict[str, ProxyNode] = {}
         self.max_failures = max_failures
         self.check_url = check_url
@@ -24,7 +31,9 @@ class AsyncProxyPool:
             if url not in self.proxies:
                 self.proxies[url] = ProxyNode(url=url)
 
-    async def validate_proxy(self, proxy: ProxyNode, session: aiohttp.ClientSession) -> bool:
+    async def validate_proxy(
+        self, proxy: ProxyNode, session: aiohttp.ClientSession
+    ) -> bool:
         try:
             start = asyncio.get_event_loop().time()
             async with session.get(self.check_url, proxy=proxy.url, timeout=5) as resp:
@@ -51,7 +60,11 @@ class AsyncProxyPool:
 
     async def get_best_proxy(self) -> Optional[ProxyNode]:
         async with self._lock:
-            available = [p for p in self.proxies.values() if p.is_valid and p.failures <= self.max_failures]
+            available = [
+                p
+                for p in self.proxies.values()
+                if p.is_valid and p.failures <= self.max_failures
+            ]
             if not available:
                 return None
             available.sort(key=lambda p: p.avg_response_time)

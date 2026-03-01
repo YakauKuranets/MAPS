@@ -53,12 +53,22 @@ class PCFGGenerator:
         self.structures = {k: v / total for k, v in structure_counter.items()}
 
         digit_total = sum(digit_counter.values()) or 1
-        self.digit_sequences = {k: v / digit_total for k, v in digit_counter.items()} if digit_counter else {}
+        self.digit_sequences = (
+            {k: v / digit_total for k, v in digit_counter.items()}
+            if digit_counter
+            else {}
+        )
 
         letter_total = sum(letter_counter.values()) or 1
-        self.letter_sequences = {k: v / letter_total for k, v in letter_counter.items()} if letter_counter else {}
+        self.letter_sequences = (
+            {k: v / letter_total for k, v in letter_counter.items()}
+            if letter_counter
+            else {}
+        )
 
-    def generate_candidates(self, base_words: List[str], count: int = 100) -> Iterator[str]:
+    def generate_candidates(
+        self, base_words: List[str], count: int = 100
+    ) -> Iterator[str]:
         """Генерирует кандидаты на основе наиболее вероятных структур."""
         if not self.structures:
             return iter([])
@@ -86,7 +96,9 @@ class PCFGGenerator:
                             assembled.append("a")
                     elif char_type == "D":
                         if self.digit_sequences:
-                            likely_digits = max(self.digit_sequences.items(), key=lambda item: item[1])[0]
+                            likely_digits = max(
+                                self.digit_sequences.items(), key=lambda item: item[1]
+                            )[0]
                             assembled.append(likely_digits[:1])
                         else:
                             assembled.append("1")

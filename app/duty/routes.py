@@ -609,8 +609,7 @@ def _build_route_svg(
             f"fill='black'>{dur // 60}м</text>"
         )
 
-    return (
-        f"""<svg xmlns='http://www.w3.org/2000/svg' width='{width}'
+    return f"""<svg xmlns='http://www.w3.org/2000/svg' width='{width}'
     height='{height}'>
     <rect x='0' y='0' width='{width}' height='{height}' fill='white'/>
     <polyline points='{polyline}' fill='none' stroke='blue' stroke-width='3'
@@ -624,7 +623,6 @@ def _build_route_svg(
       start=green, end=red, стоянки=orange
     </text>
     </svg>"""
-    )
 
 
 def _compute_stops(
@@ -1326,7 +1324,7 @@ def api_admin_dashboard():
     require_admin()
     now = _utcnow()
     shifts = (
-        DutyShift.query.filter(DutyShift.ended_at == None)
+        DutyShift.query.filter(DutyShift.ended_at.is_(None))
         .order_by(desc(DutyShift.started_at))
         .all()
     )  # noqa: E711
@@ -1397,7 +1395,7 @@ def api_admin_dashboard():
         # при наличии новых точек.
         dev = (
             TrackerDevice.query.filter(
-                TrackerDevice.user_id == sh.user_id, TrackerDevice.is_revoked == False
+                TrackerDevice.user_id == sh.user_id, TrackerDevice.is_revoked.is_(False)
             )  # noqa: E712
             .order_by(desc(TrackerDevice.last_seen_at), desc(TrackerDevice.created_at))
             .first()
@@ -1494,7 +1492,10 @@ def api_admin_shift_detail(shift_id: int):
     # если shift_id не проставлен)
     sess_q = TrackingSession.query.filter(
         (TrackingSession.shift_id == sh.id)
-        | ((TrackingSession.shift_id == None) & (TrackingSession.user_id == sh.user_id))
+        | (
+            (TrackingSession.shift_id.is_(None))
+            & (TrackingSession.user_id == sh.user_id)
+        )
     ).order_by(desc(TrackingSession.started_at))  # noqa: E711
     sessions = sess_q.limit(15).all()
     active_sess = (
@@ -1583,7 +1584,7 @@ def api_admin_shift_detail(shift_id: int):
     # См. комментарий в dashboard: у одного user_id может быть несколько устройств.
     dev = (
         TrackerDevice.query.filter(
-            TrackerDevice.user_id == sh.user_id, TrackerDevice.is_revoked == False
+            TrackerDevice.user_id == sh.user_id, TrackerDevice.is_revoked.is_(False)
         )  # noqa: E712
         .order_by(desc(TrackerDevice.last_seen_at), desc(TrackerDevice.created_at))
         .first()
@@ -1888,7 +1889,7 @@ def duty_scheduler_tick() -> None:
     now = _utcnow()
     due = (
         BreakRequest.query.filter_by(status="started", due_notified=False)
-        .filter(BreakRequest.ends_at != None)
+        .filter(BreakRequest.ends_at.is_not(None))
         .all()
     )  # noqa: E711
     changed = 0

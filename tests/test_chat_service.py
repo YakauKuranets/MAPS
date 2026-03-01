@@ -1,4 +1,3 @@
-
 import pytest
 
 from app.extensions import db
@@ -9,6 +8,7 @@ from app.services import chat_service
 @pytest.fixture(autouse=True)
 def patch_external(monkeypatch):
     """Подменяем отправку в Telegram и WebSocket, чтобы не дергать внешние сервисы."""
+
     def fake_send_telegram_message(user_id, text):
         return True, None
 
@@ -16,8 +16,12 @@ def patch_external(monkeypatch):
         # Ничего не делаем
         return None
 
-    monkeypatch.setattr("app.services.chat_service.send_telegram_message", fake_send_telegram_message)
-    monkeypatch.setattr("app.services.chat_service.broadcast_event_sync", fake_broadcast_event_sync)
+    monkeypatch.setattr(
+        "app.services.chat_service.send_telegram_message", fake_send_telegram_message
+    )
+    monkeypatch.setattr(
+        "app.services.chat_service.broadcast_event_sync", fake_broadcast_event_sync
+    )
 
 
 def test_list_conversations_and_unread(db_session):

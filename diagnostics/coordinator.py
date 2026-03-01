@@ -23,11 +23,13 @@ class TaskCoordinator:
             }
             scenarios = self.advisor.suggest_test_scenarios(context, count=5)
             for idx, scenario in enumerate(scenarios, start=1):
-                tasks.append({
-                    "type": "scenario_review",
-                    "priority": 100 + idx,
-                    "params": {"summary": scenario},
-                })
+                tasks.append(
+                    {
+                        "type": "scenario_review",
+                        "priority": 100 + idx,
+                        "params": {"summary": scenario},
+                    }
+                )
 
         return sorted(tasks, key=lambda t: int(t.get("priority", 100)))
 
@@ -38,12 +40,24 @@ class TaskCoordinator:
         if target_type == "wifi":
             return [
                 {"type": "wifi_scan", "priority": 1, "params": {"bssid": identifier}},
-                {"type": "pmkid_check", "priority": 2, "params": {"target_bssid": identifier}},
+                {
+                    "type": "pmkid_check",
+                    "priority": 2,
+                    "params": {"target_bssid": identifier},
+                },
             ]
         if target_type == "ble":
             return [
-                {"type": "ble_profile", "priority": 1, "params": {"address": identifier}},
-                {"type": "ble_vuln_check", "priority": 2, "params": {"address": identifier}},
+                {
+                    "type": "ble_profile",
+                    "priority": 1,
+                    "params": {"address": identifier},
+                },
+                {
+                    "type": "ble_vuln_check",
+                    "priority": 2,
+                    "params": {"address": identifier},
+                },
             ]
         if target_type == "ip":
             return [

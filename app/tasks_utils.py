@@ -3,7 +3,13 @@ import json
 from app.extensions import redis_client
 
 
-def publish_progress(task_id: str, current: int, total: int, found: bool = False, password: str | None = None):
+def publish_progress(
+    task_id: str,
+    current: int,
+    total: int,
+    found: bool = False,
+    password: str | None = None,
+):
     """Публикует прогресс выполнения задачи в Redis канал."""
     message = {
         "type": "progress",

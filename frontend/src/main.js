@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (analyticsRoot) {
     try {
       const root = ReactDOM.createRoot(analyticsRoot);
-      root.render(<AnalyticsPreview />);
+      root.render(React.createElement(AnalyticsPreview));
       console.log('[Vite] React AnalyticsPreview смонтирован');
     } catch (err) {
       console.error('[Vite] Не удалось смонтировать AnalyticsPreview:', err);
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (chatRoot) {
     try {
       const root = ReactDOM.createRoot(chatRoot);
-      root.render(<ChatPreview />);
+      root.render(React.createElement(ChatPreview));
       console.log('[Vite] React ChatPreview смонтирован');
     } catch (err) {
       console.error('[Vite] Не удалось смонтировать ChatPreview:', err);
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (reqRoot) {
     try {
       const root = ReactDOM.createRoot(reqRoot);
-      root.render(<RequestsPreview />);
+      root.render(React.createElement(RequestsPreview));
       console.log('[Vite] React RequestsPreview смонтирован');
     } catch (err) {
       console.error('[Vite] Не удалось смонтировать RequestsPreview:', err);

@@ -43,17 +43,25 @@ class TargetAutomaton:
     def __init__(self, target_list: list[str]):
         """Инициализирует префиксное дерево для O(N) поиска."""
         if _ahocorasick is None:
-            logger.warning("pyahocorasick недоступен, используется fallback-автомат (медленнее).")
+            logger.warning(
+                "pyahocorasick недоступен, используется fallback-автомат (медленнее)."
+            )
             self.automaton = _FallbackAutomaton()
         else:
             self.automaton = _ahocorasick.Automaton()
 
-        prepared_targets = [item.strip().lower() for item in (target_list or []) if item and item.strip()]
+        prepared_targets = [
+            item.strip().lower()
+            for item in (target_list or [])
+            if item and item.strip()
+        ]
         for idx, target in enumerate(prepared_targets):
             self.automaton.add_word(target, (idx, target))
 
         self.automaton.make_automaton()
-        logger.info("Aho-Corasick автомат скомпилирован для %s целей.", len(prepared_targets))
+        logger.info(
+            "Aho-Corasick автомат скомпилирован для %s целей.", len(prepared_targets)
+        )
 
     def find_matches(self, text_chunk: str) -> set[str]:
         """Пробегает по строке дампа за O(N) и возвращает найденные цели."""
@@ -79,4 +87,11 @@ class TargetMatcher:
     def find_matches(self, post: DarknetPost) -> list[dict]:
         content = post.content or ""
         found = self.automaton.find_matches(content)
-        return [{"type": "target_match", "value": target, "context": "matched_by_aho_corasick"} for target in sorted(found)]
+        return [
+            {
+                "type": "target_match",
+                "value": target,
+                "context": "matched_by_aho_corasick",
+            }
+            for target in sorted(found)
+        ]

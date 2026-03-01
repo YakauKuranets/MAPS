@@ -48,7 +48,9 @@ class PasswordGenerator:
             yield p.upper()
 
     def generate(self, limit: int = 10000) -> Iterator[str]:
-        words = self.custom_wordlist if self.custom_wordlist is not None else self.COMMON
+        words = (
+            self.custom_wordlist if self.custom_wordlist is not None else self.COMMON
+        )
 
         def stream() -> Iterator[str]:
             seen: set[str] = set()
@@ -61,7 +63,11 @@ class PasswordGenerator:
                     seen.add(pwd)
                     yield pwd
             if self.vendor:
-                vendor_words = [f"{self.vendor}123", f"{self.vendor}@2025", f"{self.vendor}admin"]
+                vendor_words = [
+                    f"{self.vendor}123",
+                    f"{self.vendor}@2025",
+                    f"{self.vendor}admin",
+                ]
                 for pwd in vendor_words:
                     if pwd not in seen:
                         seen.add(pwd)

@@ -23,7 +23,9 @@ async def handle_voice_message(message: Message) -> None:
     temp_dir = os.path.join(tempfile.gettempdir(), "mapv12_voice")
     os.makedirs(temp_dir, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False, dir=temp_dir) as tmp_file:
+    with tempfile.NamedTemporaryFile(
+        suffix=".ogg", delete=False, dir=temp_dir
+    ) as tmp_file:
         local_path = tmp_file.name
 
     file_info = await message.bot.get_file(message.voice.file_id)

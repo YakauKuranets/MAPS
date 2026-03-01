@@ -72,7 +72,9 @@ class ZigbeeNetworkAnalyzer:
             "nwk": getattr(device, "nwk", None),
             "manufacturer": getattr(device, "manufacturer", None),
             "model": getattr(device, "model", None),
-            "logical_type": getattr(getattr(device, "logical_type", None), "name", None),
+            "logical_type": getattr(
+                getattr(device, "logical_type", None), "name", None
+            ),
             "endpoints": [],
         }
         for epid, ep in (getattr(device, "endpoints", {}) or {}).items():
@@ -95,7 +97,10 @@ class ZigbeeNetworkAnalyzer:
             "uses_default_key": False,
             "encryption_level": "AES-128",
             "replay_protection": True,
-            "note": "Пассивная проверка завершена; для активной валидации нужны дополнительные инструменты.",
+            "note": (
+                "Пассивная проверка завершена; для активной валидации "
+                "нужны дополнительные инструменты."
+            ),
         }
 
     async def stop(self) -> None:

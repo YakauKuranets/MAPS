@@ -6,8 +6,14 @@ class Neo4jModel:
     @staticmethod
     async def init_constraints():
         queries = [
-            "CREATE CONSTRAINT IF NOT EXISTS FOR (a:THREAT_ACTOR) REQUIRE a.id IS UNIQUE",
-            "CREATE CONSTRAINT IF NOT EXISTS FOR (d:DEVICE_FINGERPRINT) REQUIRE d.id IS UNIQUE",
+            (
+                "CREATE CONSTRAINT IF NOT EXISTS FOR (a:THREAT_ACTOR) "
+                "REQUIRE a.id IS UNIQUE"
+            ),
+            (
+                "CREATE CONSTRAINT IF NOT EXISTS FOR (d:DEVICE_FINGERPRINT) "
+                "REQUIRE d.id IS UNIQUE"
+            ),
             "CREATE CONSTRAINT IF NOT EXISTS FOR (g:GEO_REGION) REQUIRE g.id IS UNIQUE",
             "CREATE INDEX IF NOT EXISTS FOR (d:DEVICE_FINGERPRINT) ON (d.model_hash)",
         ]

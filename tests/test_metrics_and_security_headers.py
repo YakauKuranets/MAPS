@@ -33,7 +33,9 @@ def test_metrics_remote_denied_without_key():
 
 
 def test_metrics_remote_allowed_with_key():
-    app = _make_app(ENABLE_METRICS=True, METRICS_ALLOW_PUBLIC=False, METRICS_API_KEY="m")
+    app = _make_app(
+        ENABLE_METRICS=True, METRICS_ALLOW_PUBLIC=False, METRICS_API_KEY="m"
+    )
     with app.test_client() as client:
         r = client.get(
             "/metrics",

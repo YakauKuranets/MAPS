@@ -61,7 +61,8 @@ def _is_policy_violation(event: dict[str, Any]) -> tuple[bool, str, str]:
 
 async def _stream_tetragon_events() -> None:
     logger.critical(
-        "[SOAR_eBPF] Подключение к потоку ядра (Ring 0) установлено. Ожидание аномалий..."
+        "[SOAR_eBPF] Подключение к потоку ядра (Ring 0) установлено. "
+        "Ожидание аномалий..."
     )
 
     process = await asyncio.create_subprocess_exec(
@@ -84,7 +85,8 @@ async def _stream_tetragon_events() -> None:
                 continue
 
             logger.error(
-                "[SOAR_eBPF] АЛЕРТ ЯДРА! Нарушение политики: %s. Заблокирован бинарник: %s",
+                "[SOAR_eBPF] АЛЕРТ ЯДРА! Нарушение политики: %s. "
+                "Заблокирован бинарник: %s",
                 policy,
                 binary,
             )

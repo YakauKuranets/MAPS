@@ -23,7 +23,9 @@ class AutomotiveBusAnalyzer:
         for i in range(max(1, min(100, int(duration) * 2))):
             pid = i % 0x3F
             data = [0xAA, 0x55, 0x00, 0xFF, 0x12, 0x34, 0x56, 0x78]
-            frames.append({"pid": pid, "data": data, "length": len(data), "checksum_valid": True})
+            frames.append(
+                {"pid": pid, "data": data, "length": len(data), "checksum_valid": True}
+            )
 
         return {
             "protocol": "LIN",
@@ -37,7 +39,9 @@ class AutomotiveBusAnalyzer:
     def analyze_flexray(self, duration: int = 10) -> Dict:
         static_slots = []
         for slot in range(1, min(8, max(2, int(duration) // 2))):
-            static_slots.append({"slot_id": slot, "payload": [0x11 * slot] * 8, "frame_id_valid": True})
+            static_slots.append(
+                {"slot_id": slot, "payload": [0x11 * slot] * 8, "frame_id_valid": True}
+            )
 
         return {
             "protocol": "FlexRay",

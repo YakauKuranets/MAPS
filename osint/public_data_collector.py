@@ -19,7 +19,12 @@ class PublicAssetDataCollector:
     Собирает публичные данные об owned-активах из открытых источников.
     """
 
-    def __init__(self, shodan_api_key: str = None, censys_api_id: str = None, censys_secret: str = None):
+    def __init__(
+        self,
+        shodan_api_key: str = None,
+        censys_api_id: str = None,
+        censys_secret: str = None,
+    ):
         self.shodan_api_key = shodan_api_key
         self.censys_api_id = censys_api_id
         self.censys_secret = censys_secret

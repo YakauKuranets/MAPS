@@ -23,7 +23,9 @@ class AssetRiskGraph:
         """Добавляет узел актива."""
         self.nodes.add((asset_id, asset_type, risk_score))
 
-    def add_risk_relation(self, source_id: str, target_id: str, risk_type: str, weight: float = 1.0):
+    def add_risk_relation(
+        self, source_id: str, target_id: str, risk_type: str, weight: float = 1.0
+    ):
         """Добавляет связь, отражающую риск между активами."""
         self.edges.append(
             {

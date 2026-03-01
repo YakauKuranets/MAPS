@@ -27,7 +27,7 @@ depends_on = None
 def _column_exists(conn, table_name: str, column_name: str) -> bool:
     insp = inspect(conn)
     try:
-        cols = {c.get('name') for c in insp.get_columns(table_name)}
+        cols = {c.get("name") for c in insp.get_columns(table_name)}
         return column_name in cols
     except Exception:
         return False
@@ -43,7 +43,9 @@ def upgrade():
         ("thumb_key", sa.String(length=256)),
     ]:
         if not _column_exists(conn, "chat2_messages", col_name):
-            op.add_column("chat2_messages", sa.Column(col_name, col_type, nullable=True))
+            op.add_column(
+                "chat2_messages", sa.Column(col_name, col_type, nullable=True)
+            )
 
 
 def downgrade():

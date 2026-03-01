@@ -28,7 +28,9 @@ def fake_context():
     return SimpleNamespace(user_data={})
 
 
-def test_connect_returns_intent_link(bot_module, fake_update, fake_context, monkeypatch):
+def test_connect_returns_intent_link(
+    bot_module, fake_update, fake_context, monkeypatch
+):
     async def _ok(*_args, **_kwargs):
         return True
 
@@ -98,6 +100,8 @@ def test_chat_unread_for_user_counter(bot_module, monkeypatch):
         def json(self):
             return {"unread_for_user": 3}
 
-    monkeypatch.setattr(bot_module.requests, "get", lambda *args, **kwargs: DummyResponse())
+    monkeypatch.setattr(
+        bot_module.requests, "get", lambda *args, **kwargs: DummyResponse()
+    )
     unread = asyncio.run(bot_module._fetch_unread_for_user("777"))
     assert unread == 3

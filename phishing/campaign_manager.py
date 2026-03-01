@@ -27,7 +27,9 @@ class PhishingCampaignManager:
         self.llm = PredictiveAdvisor()
         self.campaigns: dict[str, dict] = {}
 
-    def create_campaign(self, name: str, target_emails: List[str], template_type: str = "generic") -> str:
+    def create_campaign(
+        self, name: str, target_emails: List[str], template_type: str = "generic"
+    ) -> str:
         campaign_id = f"camp_{int(time.time())}"
         prompt = (
             "Create a SAFE security-awareness email template for employee training. "
@@ -59,7 +61,9 @@ class PhishingCampaignManager:
 
         results = {"sent": [], "failed": []}
         try:
-            server = smtplib.SMTP(smtp_config["host"], int(smtp_config.get("port", 587)), timeout=20)
+            server = smtplib.SMTP(
+                smtp_config["host"], int(smtp_config.get("port", 587)), timeout=20
+            )
             if smtp_config.get("use_tls", True):
                 server.starttls()
             if smtp_config.get("username"):
@@ -92,11 +96,13 @@ class PhishingCampaignManager:
             return {"error": "Campaign not found"}
 
         try:
-            imap = imaplib.IMAP4_SSL(imap_config["host"], int(imap_config.get("port", 993)))
+            imap = imaplib.IMAP4_SSL(
+                imap_config["host"], int(imap_config.get("port", 993))
+            )
             imap.login(imap_config["username"], imap_config["password"])
             imap.select("INBOX")
             _, data = imap.search(None, 'SUBJECT "Security Awareness Training"')
-            ids = (data[0].split() if data and data[0] else [])
+            ids = data[0].split() if data and data[0] else []
             campaign["opened_count"] += len(ids)
             imap.close()
             imap.logout()

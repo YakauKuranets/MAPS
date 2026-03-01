@@ -16,7 +16,10 @@ from compat_flask import current_app
 
 FCM_URL = "https://fcm.googleapis.com/fcm/send"
 
-def send_push(title: str, body: str, tokens: List[str], data: Optional[Dict[str, str]] = None) -> Dict[str, int]:
+
+def send_push(
+    title: str, body: str, tokens: List[str], data: Optional[Dict[str, str]] = None
+) -> Dict[str, int]:
     """Отправить push‑уведомление на список токенов.
 
     Args:
@@ -51,7 +54,9 @@ def send_push(title: str, body: str, tokens: List[str], data: Optional[Dict[str,
     if data:
         payload["data"] = data
     try:
-        resp = requests.post(FCM_URL, headers=headers, data=json.dumps(payload), timeout=5)
+        resp = requests.post(
+            FCM_URL, headers=headers, data=json.dumps(payload), timeout=5
+        )
         if resp.ok:
             try:
                 res = resp.json()
@@ -60,7 +65,9 @@ def send_push(title: str, body: str, tokens: List[str], data: Optional[Dict[str,
                 sent = 0
             return {"sent": sent}
         else:
-            current_app.logger.debug("FCM push failed: %s %s", resp.status_code, resp.text)
+            current_app.logger.debug(
+                "FCM push failed: %s %s", resp.status_code, resp.text
+            )
     except Exception as exc:
         logging.getLogger(__name__).debug("FCM push error: %s", exc)
     return {"sent": 0}

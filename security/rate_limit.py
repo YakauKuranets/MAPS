@@ -1,7 +1,9 @@
 """Simple rate limiting (Redis backed if available).
 
 Usage:
-    ok, info = check_rate_limit(bucket="login", ident=remote_ip, limit=10, window_seconds=60)
+    ok, info = check_rate_limit(
+        bucket="login", ident=remote_ip, limit=10, window_seconds=60
+    )
     if not ok: return jsonify(error="rate_limited", **info), 429
 """
 
@@ -35,6 +37,7 @@ def _purge_expired() -> None:
     for k in stale:
         _mem.pop(k, None)
 
+
 @dataclass
 class LimitInfo:
     limit: int
@@ -48,19 +51,20 @@ class LimitInfo:
         Keys are lower_snake_case to match our API style.
         """
         return {
-            'limit': int(self.limit),
-            'window_seconds': int(self.window_seconds),
-            'remaining': int(self.remaining),
-            'reset_in': int(self.reset_in),
+            "limit": int(self.limit),
+            "window_seconds": int(self.window_seconds),
+            "remaining": int(self.remaining),
+            "reset_in": int(self.reset_in),
         }
 
     def http_headers(self) -> Dict[str, str]:
         """Return standard-ish X-RateLimit-* headers."""
         return {
-            'X-RateLimit-Limit': str(int(self.limit)),
-            'X-RateLimit-Remaining': str(int(self.remaining)),
-            'X-RateLimit-Reset': str(int(self.reset_in)),
+            "X-RateLimit-Limit": str(int(self.limit)),
+            "X-RateLimit-Remaining": str(int(self.remaining)),
+            "X-RateLimit-Reset": str(int(self.reset_in)),
         }
+
 
 def _redis_client():
     url = (current_app.config.get("REDIS_URL") or "").strip()
@@ -71,7 +75,10 @@ def _redis_client():
     except Exception:
         return None
 
-def check_rate_limit(bucket: str, ident: str, limit: int, window_seconds: int) -> Tuple[bool, LimitInfo]:
+
+def check_rate_limit(
+    bucket: str, ident: str, limit: int, window_seconds: int
+) -> Tuple[bool, LimitInfo]:
     now = int(time.time())
     window_start = (now // window_seconds) * window_seconds
     key = f"rl:{bucket}:{window_start}:{ident}"
@@ -88,7 +95,12 @@ def check_rate_limit(bucket: str, ident: str, limit: int, window_seconds: int) -
                 r.expire(key, window_seconds + 5)
             remaining = max(0, limit - int(val))
             ok = int(val) <= limit
-            return ok, LimitInfo(limit=limit, window_seconds=window_seconds, remaining=remaining, reset_in=reset_in)
+            return ok, LimitInfo(
+                limit=limit,
+                window_seconds=window_seconds,
+                remaining=remaining,
+                reset_in=reset_in,
+            )
         except Exception:
             # fall back to memory
             pass
@@ -102,4 +114,9 @@ def check_rate_limit(bucket: str, ident: str, limit: int, window_seconds: int) -
     _mem[key] = (cnt, exp)
     remaining = max(0, limit - cnt)
     ok = cnt <= limit
-    return ok, LimitInfo(limit=limit, window_seconds=window_seconds, remaining=remaining, reset_in=int(exp - now))
+    return ok, LimitInfo(
+        limit=limit,
+        window_seconds=window_seconds,
+        remaining=remaining,
+        reset_in=int(exp - now),
+    )
